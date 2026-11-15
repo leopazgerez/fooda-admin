@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+:root {
+  /* Paleta de Fooda (logo "El club del freezer"): tinta negra, crema, rosa; estados con los colores de crayón */
+  --brand: #1C1917;
+  --brand-dark: #2B2522;
+  --brand-soft: #FDE4EE;
+  --accent: #D42A6F;
+  --accent-dark: #B0215B;
+  --sidebar-bg: #1C1917;
+  --sidebar-hover: #2E2723;
+  --sidebar-text: #CDBFAE;
+  --sidebar-text-active: #FFF8EC;
+  --app-bg: #F9EFDC;
+  --surface: #FFFCF6;
+  --surface-alt: #F6EAD5;
+  --text-primary: #1C1917;
+  --text-body: #3A322C;
+  --text-label: #514740;
+  --text-secondary: #6F6257;
+  --text-muted: #A69886;
+  --border-color: #EADBC3;
+  --border-strong: #D8C4A5;
+  --border-faint: #F3E7D3;
+  --success: #2E8B3A;
+  --success-soft: #EAF6E5;
+  --success-line: #A8DA9C;
+  --success-strong: #1E6A28;
+  --success-tint: #D3EDC9;
+  --danger: #C62828;
+  --danger-soft: #FDECEA;
+  --warning: #D2691A;
+  --warning-soft: #FFF2E0;
+  --info: #3B6FD6;
+  --info-soft: #E3ECFC;
+  --warning-tint: #FDE1BF;
+  --warning-strong: #934A0B;
+  --warning-line: #F28C28;
+  --danger-tint: #FBD9D6;
+  --danger-strong: #962020;
+  --danger-line: #DC3B3B;
+  --info-tint: #D9E4FB;
+  --info-strong: #244FA6;
+  --info-line: #4A7FE0;
+}
+
+@theme {
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-soft: var(--brand-soft);
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.625rem;
+  --radius-xl: 1rem;
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-text-active: var(--sidebar-text-active);
+  --color-app-bg: var(--app-bg);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-text-primary: var(--text-primary);
+  --color-text-body: var(--text-body);
+  --color-text-label: var(--text-label);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border-subtle: var(--border-color);
+  --color-border-strong: var(--border-strong);
+  --color-border-faint: var(--border-faint);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-line: var(--success-line);
+  --color-success-strong: var(--success-strong);
+  --color-success-tint: var(--success-tint);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-warning-tint: var(--warning-tint);
+  --color-warning-strong: var(--warning-strong);
+  --color-warning-line: var(--warning-line);
+  --color-danger-tint: var(--danger-tint);
+  --color-danger-strong: var(--danger-strong);
+  --color-danger-line: var(--danger-line);
+  --color-info-tint: var(--info-tint);
+  --color-info-strong: var(--info-strong);
+  --color-info-line: var(--info-line);
+
+  --font-heading: var(--font-inter), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
+  --font-mono: var(--font-mono-face), ui-monospace, monospace;
+}
+
+body {
+  background-color: var(--app-bg);
+  color: var(--text-primary);
+  font-family: var(--font-inter), sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-inter), sans-serif;
+}
+
+/* ── Global feedback (FeedbackLayer) ── */
+@keyframes feedback-toast-in {
+  from { transform: translateX(calc(100% + 1rem)); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes feedback-toast-out {
+  to { transform: translateX(calc(100% + 1rem)); opacity: 0; }
+}
+@keyframes feedback-bar {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+/* shown only when a call takes long enough to notice, so fast calls don't flicker */
+@keyframes feedback-appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.feedback-toast-in { animation: feedback-toast-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.feedback-toast-out { animation: feedback-toast-out 200ms ease-in both; }
+.feedback-loader-bar { animation: feedback-appear 150ms ease-out 150ms both; }
+.feedback-loader-bar > div { animation: feedback-bar 1.1s ease-in-out infinite; }
+.feedback-loader-pill { animation: feedback-appear 200ms ease-out 400ms both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .feedback-toast-in, .feedback-toast-out { animation-duration: 1ms; }
+  .feedback-loader-bar > div { animation: none; width: 100%; opacity: 0.6; }
+}

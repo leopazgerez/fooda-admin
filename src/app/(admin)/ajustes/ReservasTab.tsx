@@ -1,0 +1,79 @@
+"use client";
+
+import { useState } from "react";
+import { Plus } from "lucide-react";
+import { ApiErrorBanner, ConfirmDeleteModal, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, type Columna } from "@/components/ui";
+import { api, ApiError } from "@/lib/api";
+import type { Reserva } from "@/lib/apiTypes";
+import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
+import { AnimatePresence } from "motion/react";
+
+/** Reparto de la ganancia del mes en reservas (%). */
+export default function ReservasTab() {
+  const [edit, setEdit] = useState<Reserva | "nueva" | null>(null);
+  const { data, error, reload } = useApiResource(() => api.getAll<Reserva>("/reservas"), []);
+  useReloadOnWrite(reload);
+  const reservas = data ?? [];
+  const suma = reservas.reduce((a, r) => a + r.porcentaje, 0);
+  const columnas: Columna<Reserva>[] = [
+    { key: "nombre", header: "RESERVA", className: "font-semibold text-brand-dark", render: (r) => r.nombre },
+    { key: "pct", header: "% DE LA GANANCIA", align: "right", className: "font-mono", render: (r) => `${r.porcentaje} %` },
+  ];
+  return (
+    <div className="flex flex-col gap-3">
+      <ApiErrorBanner error={error} />
+      <div className="flex justify-end">
+        <button type="button" onClick={() => setEdit("nueva")} className={btnSecondary}><Plus className="w-3.5 h-3.5" /> Nueva reserva</button>
+      </div>
+      <ListTable rows={reservas} rowKey={(r) => r.id} columns={columnas} onRowClick={setEdit} empty="Sin reservas."
+        footer={<span className={suma > 100 ? "text-danger" : ""}>Suman {suma} %{suma > 100 ? " — superan el 100 % de la ganancia" : ""}</span>} />
+      <AnimatePresence>{edit && <ReservaForm reserva={edit === "nueva" ? null : edit} onClose={() => setEdit(null)} />}</AnimatePresence>
+    </div>
+  );
+}
+
+function ReservaForm({ reserva, onClose }: { reserva: Reserva | null; onClose: () => void }) {
+  const [nombre, setNombre] = useState(reserva?.nombre ?? "");
+  const [porcentaje, setPorcentaje] = useState(reserva?.porcentaje ?? 0);
+  const [busy, setBusy] = useState(false);
+  const [borrar, setBorrar] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const bad = (k: string) => (error instanceof ApiError && error.field === k ? "!border-danger ring-2 ring-danger/20" : "");
+  const correr = async (fn: () => Promise<unknown>) => {
+    setError(null);
+    setBusy(true);
+    try {
+      await fn();
+      onClose();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const guardar = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (busy) return;
+    const body = { nombre: nombre.trim(), porcentaje };
+    correr(() => (reserva
+      ? api.patch(`/reservas/${reserva.id}`, body, { silent: true, success: "Reserva actualizada." })
+      : api.post("/reservas", body, { silent: true, success: "Reserva creada." })));
+  };
+  return (
+    <FormPanel title={reserva ? `Editar ${reserva.nombre}` : "Nueva reserva"} onClose={onClose} footer={<>
+      {reserva && <button type="button" onClick={() => setBorrar(true)} className={`${btnSecondary} md:mr-auto text-danger`}>Eliminar</button>}
+      <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
+      <button type="submit" form="reserva-form" disabled={busy || !nombre.trim()} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>
+    </>}>
+      <form id="reserva-form" noValidate onSubmit={guardar} className="flex flex-col gap-4">
+        <ApiErrorBanner error={error} />
+        <Field label="NOMBRE"><input value={nombre} maxLength={60} onChange={(e) => setNombre(e.target.value)} className={`${inputCls} ${bad("nombre")}`} /></Field>
+        <Field label="% DE LA GANANCIA">
+          <input type="number" min={0} max={100} value={porcentaje} onChange={(e) => setPorcentaje(Math.max(0, Number(e.target.value) || 0))} className={`${inputCls} font-mono ${bad("porcentaje")}`} />
+        </Field>
+      </form>
+      {reserva && <ConfirmDeleteModal isOpen={borrar} onClose={() => setBorrar(false)} itemName={reserva.nombre} isLoading={busy}
+        onConfirm={() => correr(() => api.del(`/reservas/${reserva.id}`, { success: "Reserva eliminada." }))} />}
+    </FormPanel>
+  );
+}
