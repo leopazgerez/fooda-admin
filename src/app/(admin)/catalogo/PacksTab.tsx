@@ -49,7 +49,7 @@ function PackPanel({ pack, platos, onClose, onCreado }: { pack: PackVista | null
   const [error, setError] = useState<unknown>(null);
   const bad = (k: string) => (error instanceof ApiError && error.field === k ? "!border-danger ring-2 ring-danger/20" : "");
 
-  const guardar = async (e: React.FormEvent) => {
+  const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy) return;
     setError(null);

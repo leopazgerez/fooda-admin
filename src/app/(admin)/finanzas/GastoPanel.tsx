@@ -21,7 +21,7 @@ export default function GastoPanel({ gasto, tipos, onClose }: { gasto: Gasto | n
   const [error, setError] = useState<unknown>(null);
   const bad = (k: string) => (error instanceof ApiError && error.field === k ? badField : "");
 
-  const guardar = async (e: React.FormEvent) => {
+  const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy || auto) return;
     const body: Record<string, unknown> = gasto

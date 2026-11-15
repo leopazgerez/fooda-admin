@@ -69,7 +69,7 @@ function SedeForm({ sede, onClose }: { sede: Sede | Omit<Sede, "id">; onClose: (
     <input type="number" min={0} value={f[k]} onChange={(e) => setF({ ...f, [k]: Math.max(0, Number(e.target.value) || 0) })} className={`${inputCls} font-mono ${bad(k)}`} />
   );
 
-  const guardar = async (e: React.FormEvent) => {
+  const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy) return;
     const { nombre, direccion, capacidad, umbralStock, umbralLugaresLibres, envio, afectaPrecio } = f;

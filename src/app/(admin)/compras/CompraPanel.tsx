@@ -40,7 +40,7 @@ export default function CompraPanel({ compra, proveedores, insumos, onClose }: {
     if (i) setLineas([...lineas, { insumoId: i.id, cantidad: i.contenido, precioEnvase: i.precioEnvase ?? 0 }]);
   };
 
-  const guardar = async (e: React.FormEvent) => {
+  const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy) return;
     setError(null);

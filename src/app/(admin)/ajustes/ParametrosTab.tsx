@@ -53,7 +53,7 @@ function ParametrosForm({ actual, insumos, onClose }: { actual: Parametros; insu
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const bad = (k: string) => (error instanceof ApiError && error.field === k ? "!border-danger ring-2 ring-danger/20" : "");
-  const guardar = async (e: React.FormEvent) => {
+  const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy) return;
     const body = Object.fromEntries([...CAMPOS.map((c) => c.k), "aceiteInsumoId" as const]

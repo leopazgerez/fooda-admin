@@ -49,7 +49,7 @@ function PlatoPanel({ plato, insumos, onClose }: { plato: PlatoVista | null; ins
   const set = (i: number, c: Partial<LineaReceta>) => setReceta(receta.map((l, j) => (j === i ? { ...l, ...c } : l)));
   const activos = insumos.filter((i) => i.activo && !i.esEnvase);
 
-  const guardar = async (e: React.FormEvent) => {
+  const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy) return;
     const cambioReceta = !plato || JSON.stringify(receta) !== JSON.stringify(plato.receta);

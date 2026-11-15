@@ -57,7 +57,7 @@ function ItemForm({ valores, lista, i, onClose }: { valores: string[]; lista: Li
       setBusy(false);
     }
   };
-  const submit = (e: React.FormEvent) => {
+  const submit = (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy || repetido || !valor.trim()) return;
     guardar(i === null ? [...valores, valor.trim()] : valores.map((v, j) => (j === i ? valor.trim() : v)), "Lista actualizada.");

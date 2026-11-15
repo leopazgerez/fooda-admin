@@ -33,7 +33,7 @@ export function ClienteForm({ cliente, onClose, onSaved }: { cliente: ClienteVis
     <input value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} className={`${inputCls} ${bad(k)}`} {...props} />
   );
 
-  const guardar = async (e: React.FormEvent) => {
+  const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy) return;
     const body: Record<string, string | null> = {};

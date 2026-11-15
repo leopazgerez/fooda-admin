@@ -51,7 +51,7 @@ function ReservaForm({ reserva, onClose }: { reserva: Reserva | null; onClose: (
       setBusy(false);
     }
   };
-  const guardar = (e: React.FormEvent) => {
+  const guardar = (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy) return;
     const body = { nombre: nombre.trim(), porcentaje };

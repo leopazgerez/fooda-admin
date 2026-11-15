@@ -29,7 +29,7 @@ export default function PagoPacksPanel({ sedes, filas, parametros, onClose }: {
   const trueque = motivo === "pago_con_packs";
   const mal = error instanceof ApiError && error.field === "notas" ? "!border-danger ring-2 ring-danger/20" : "";
 
-  const guardar = async (e: React.FormEvent) => {
+  const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy) return;
     setError(null);

@@ -24,7 +24,7 @@ export default function InsumoPanel({ insumo, proveedores, onClose }: { insumo: 
   const bad = (k: string) => (error instanceof ApiError && error.field === k ? badField : "");
   const compuesto = !!insumo?.compuesto;
 
-  const guardar = async (e: React.FormEvent) => {
+  const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy) return;
     const todo = { ...f, nombre: f.nombre.trim(), presentacion: f.presentacion.trim(), gramosPorUnidad: f.unidad === "u" && f.gramosPorUnidad ? f.gramosPorUnidad : null };

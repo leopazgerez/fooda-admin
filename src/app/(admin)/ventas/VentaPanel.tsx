@@ -91,7 +91,7 @@ export default function VentaPanel({ sedes, filas, clientes, parametros, onClose
   const [error, setError] = useState<unknown>(null);
   const total = lineas.reduce((a, l) => a + l.cantidad * l.precio, 0) - descuento + envio;
 
-  const guardar = async (e: React.FormEvent) => {
+  const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy) return;
     setError(null);
