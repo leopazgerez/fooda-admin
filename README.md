@@ -57,7 +57,7 @@ src/
     (admin)/<pantalla>/   page.tsx + sus paneles (*Panel.tsx) y pestañas (*Tab.tsx)
   components/
     layout/               Sidebar, BottomNav, Topbar, SidebarContext (drawer mobile)
-    ui/                   FormPanel, ListTable, Tabs, ConfirmDeleteModal, ApiErrorBanner, Erp (Card, Stat, Tag,
+    ui/                   FormPanel, ListTable, Tabs, ConfirmModal, ApiErrorBanner, Erp (Card, Stat, Tag,
                           Field, PageHead, estilos de inputs y botones); FeedbackLayer se importa directo
   config/                 app.ts (marca), nav.ts (menú), env.ts (NEXT_PUBLIC_*)
   lib/

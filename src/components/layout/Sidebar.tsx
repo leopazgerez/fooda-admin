@@ -9,6 +9,8 @@ import { logout, useCurrentUser } from "@/lib/auth";
 import { initials } from "@/lib/format";
 import { getAssetPath } from "@/lib/assets";
 import { useSidebar } from "./SidebarContext";
+import { useState } from "react";
+import { ConfirmModal } from "@/components/ui";
 
 export const isUnder = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -17,6 +19,7 @@ export default function Sidebar() {
   const router = useRouter();
   const user = useCurrentUser();
   const { isOpen, closeSidebar } = useSidebar();
+  const [salir, setSalir] = useState(false);
 
   return (
     <>
@@ -73,11 +76,7 @@ export default function Sidebar() {
           </div>
           <button
             type="button"
-            onClick={() => {
-              logout();
-              closeSidebar();
-              router.replace("/login");
-            }}
+            onClick={() => setSalir(true)}
             title="Cerrar sesión"
             className="text-text-muted hover:text-danger px-1 py-2 rounded-sm transition-colors cursor-pointer"
           >
@@ -85,6 +84,13 @@ export default function Sidebar() {
           </button>
         </div>
       </aside>
+      <ConfirmModal tone="neutral" isOpen={salir} onClose={() => setSalir(false)}
+        title="¿Cerrar sesión?" description="Vas a salir del panel y tendrás que volver a ingresar." confirmLabel="Cerrar sesión"
+        onConfirm={() => {
+          logout();
+          closeSidebar();
+          router.replace("/login");
+        }} />
     </>
   );
 }

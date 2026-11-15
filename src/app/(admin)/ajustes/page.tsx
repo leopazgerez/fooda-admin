@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
-import { ConfirmDeleteModal, PageHead, btnSecondary } from "@/components/ui";
+import { ConfirmModal, PageHead, btnSecondary } from "@/components/ui";
 import Tabs, { useTab } from "@/components/ui/Tabs";
 import { env } from "@/config/env";
 import { api } from "@/lib/api";
@@ -52,7 +52,7 @@ function Ajustes() {
       {tab === "parametros" && <ParametrosTab />}
       {tab === "reservas" && <ReservasTab />}
       {tab === "listas" && <ListasTab />}
-      <ConfirmDeleteModal isOpen={restaurar} onClose={() => setRestaurar(false)} onConfirm={reset} isLoading={busy}
+      <ConfirmModal tone="neutral" isOpen={restaurar} onClose={() => setRestaurar(false)} onConfirm={reset} isLoading={busy}
         title="¿Restaurar datos de ejemplo?" confirmLabel="Restaurar"
         description="Se borra todo lo cargado en este navegador (ventas, producciones, compras, gastos, clientes) y vuelven los datos de ejemplo. No se puede deshacer." />
     </>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { HandCoins, Plus, TrendingUp, Wallet } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
-import { ApiErrorBanner, Card, CardHead, ConfirmDeleteModal, ListTable, PageHead, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
+import { ApiErrorBanner, Card, CardHead, ConfirmModal, ListTable, PageHead, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { Gasto, MesFinanzas, Parametros } from "@/lib/apiTypes";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
@@ -105,7 +105,7 @@ export default function FinanzasPage() {
         </Card>
       </main>
       <AnimatePresence>{panel && <GastoPanel gasto={panel === "nuevo" ? null : panel} tipos={parametros?.tiposGasto ?? []} onClose={() => setPanel(null)} />}</AnimatePresence>
-      <ConfirmDeleteModal isOpen={!!cerrar} onClose={() => setCerrar(null)} onConfirm={confirmarCierre} isLoading={cerrando}
+      <ConfirmModal tone="neutral" isOpen={!!cerrar} onClose={() => setCerrar(null)} onConfirm={confirmarCierre} isLoading={cerrando}
         title={cerrar ? `Cerrar ${nombreMes(cerrar)}` : ""} confirmLabel="Cerrar mes"
         description={cerrar ? `El indirecto por pack de ${nombreMes(cerrar)} queda fijo y deja de cambiar con nuevos gastos. No se puede deshacer.` : ""} />
     </>

@@ -1,5 +1,5 @@
-export { default as ConfirmDeleteModal } from "./ConfirmDeleteModal";
-export type { ConfirmDeleteModalProps } from "./ConfirmDeleteModal";
+export { default as ConfirmModal } from "./ConfirmModal";
+export type { ConfirmModalProps } from "./ConfirmModal";
 export { default as ApiErrorBanner } from "./ApiErrorBanner";
 export * from "./Erp";
 export { default as FormPanel } from "./FormPanel";

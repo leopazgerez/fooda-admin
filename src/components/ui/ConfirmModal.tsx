@@ -3,8 +3,9 @@
 import React, { useEffect } from "react";
 import { AlertTriangle, X, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useIsPresent } from "motion/react";
+import { btnPrimary } from "./Erp";
 
-export interface ConfirmDeleteModalProps {
+export interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -14,9 +15,11 @@ export interface ConfirmDeleteModalProps {
   confirmLabel?: string;
   cancelLabel?: string;
   isLoading?: boolean;
+  /** danger: eliminar (rojo, tacho). neutral: otras acciones sensibles; pasar title, description y confirmLabel. */
+  tone?: "danger" | "neutral";
 }
 
-export default function ConfirmDeleteModal({
+export default function ConfirmModal({
   isOpen,
   onClose,
   onConfirm,
@@ -26,15 +29,19 @@ export default function ConfirmDeleteModal({
   confirmLabel = "Eliminar definitivamente",
   cancelLabel = "Cancelar",
   isLoading = false,
-}: ConfirmDeleteModalProps) {
-  // Close on Escape key
+  tone = "danger",
+}: ConfirmModalProps) {
+  const danger = tone === "danger";
+  // Escape cierra solo este popup: en captura y sin propagar, para que un FormPanel debajo no se cierre también.
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      e.stopImmediatePropagation();
+      onClose();
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
   }, [isOpen, onClose]);
 
   return (
@@ -48,7 +55,7 @@ export default function ConfirmDeleteModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-app-bg">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-danger-soft text-danger flex items-center justify-center shrink-0">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${danger ? "bg-danger-soft text-danger" : "bg-warning-soft text-warning"}`}>
               <AlertTriangle className="w-5 h-5" />
             </div>
             <h3 className="font-heading font-bold text-base text-text-primary">
@@ -98,9 +105,11 @@ export default function ConfirmDeleteModal({
               onClose();
             }}
             disabled={isLoading}
-            className="bg-danger text-white px-5 py-2 rounded-xl font-semibold hover:bg-danger-strong transition-all shadow-xs cursor-pointer flex items-center gap-2"
+            className={danger
+              ? "bg-danger text-white px-5 py-2 rounded-xl font-semibold hover:bg-danger-strong transition-all shadow-xs cursor-pointer flex items-center gap-2"
+              : btnPrimary}
           >
-            <Trash2 className="w-4 h-4" />
+            {danger && <Trash2 className="w-4 h-4" />}
             <span>{confirmLabel}</span>
           </button>
         </div>
@@ -110,16 +119,17 @@ export default function ConfirmDeleteModal({
   );
 }
 
-/** Mientras sale no recibe clics: si no, un doble clic en Confirmar lo ejecutaría dos veces. */
+/** Mientras sale, el fondo absorbe los clics sin hacer nada: así un doble clic en Confirmar no lo ejecuta dos veces
+ *  ni el segundo clic atraviesa hasta lo que hay debajo (p. ej. el fondo de un FormPanel, que lo cerraría). */
 function Fondo({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   const presente = useIsPresent();
   return (
     <motion.div
-      onClick={onClose}
+      onClick={presente ? onClose : undefined}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs ${presente ? "" : "pointer-events-none"}`}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
     >
-      {children}
+      <div className={presente ? "contents" : "contents pointer-events-none"}>{children}</div>
     </motion.div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ApiErrorBanner, Card, CardHead, ConfirmDeleteModal, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, Card, CardHead, ConfirmModal, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { Parametros } from "@/lib/apiTypes";
 import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
@@ -74,7 +74,7 @@ function ItemForm({ valores, lista, i, onClose }: { valores: string[]; lista: Li
           <input value={valor} maxLength={40} onChange={(e) => setValor(e.target.value)} className={inputCls} />
         </Field>
       </form>
-      {i !== null && <ConfirmDeleteModal isOpen={borrar} onClose={() => setBorrar(false)} itemName={valores[i]} isLoading={busy}
+      {i !== null && <ConfirmModal isOpen={borrar} onClose={() => setBorrar(false)} itemName={valores[i]} isLoading={busy}
         description="Deja de ofrecerse en los formularios. Los registros que ya lo usan no cambian."
         onConfirm={() => guardar(valores.filter((_, j) => j !== i), "Valor eliminado.")} />}
     </FormPanel>

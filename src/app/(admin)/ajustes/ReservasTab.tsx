@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ApiErrorBanner, ConfirmDeleteModal, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, ConfirmModal, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, type Columna } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { Reserva } from "@/lib/apiTypes";
 import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
@@ -72,7 +72,7 @@ function ReservaForm({ reserva, onClose }: { reserva: Reserva | null; onClose: (
           <input type="number" min={0} max={100} value={porcentaje} onChange={(e) => setPorcentaje(Math.max(0, Number(e.target.value) || 0))} className={`${inputCls} font-mono ${bad("porcentaje")}`} />
         </Field>
       </form>
-      {reserva && <ConfirmDeleteModal isOpen={borrar} onClose={() => setBorrar(false)} itemName={reserva.nombre} isLoading={busy}
+      {reserva && <ConfirmModal isOpen={borrar} onClose={() => setBorrar(false)} itemName={reserva.nombre} isLoading={busy}
         onConfirm={() => correr(() => api.del(`/reservas/${reserva.id}`, { success: "Reserva eliminada." }))} />}
     </FormPanel>
   );

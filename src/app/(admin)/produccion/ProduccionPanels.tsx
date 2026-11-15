@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ApiErrorBanner, Field, FormPanel, btnPrimary, btnSecondary, inputCls, tdCls, thCls } from "@/components/ui";
+import { ApiErrorBanner, ConfirmModal, Field, FormPanel, btnPrimary, btnSecondary, inputCls, tdCls, thCls } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { PackVista, ProduccionResumen, RecetarioPack, SedeOpcion } from "@/lib/apiTypes";
 import { toLocalISODate } from "@/lib/dateUtils";
@@ -87,23 +87,26 @@ export function CerrarProduccionPanel({ produccion, sedes, onClose }: { producci
   const [reparto, setReparto] = useState<Record<string, number>>({});
   const [fecha, setFecha] = useState(toLocalISODate());
   const { busy, error, run } = useGuardar(onClose);
+  const [confirmar, setConfirmar] = useState(false);
   const entero = (v: string) => Math.max(0, Math.floor(Number(v) || 0));
+  const cerrar = () => run(() => api.post(`/producciones/${produccion.id}/cerrar`, {
+    fecha,
+    lineas: produccion.detallePacks.map((p) => ({ packId: p.packId, real: real[p.packId] ?? 0 })),
+    reparto: Object.entries(reparto).filter(([, c]) => c > 0).map(([k, cantidad]) => {
+      const [sedeId, packId] = k.split("|").map(Number);
+      return { sedeId, packId, cantidad };
+    }),
+  }, { silent: true, success: `Producción ${produccion.codigo} cerrada: el stock ya está en las sedes.` }));
 
-  return (
+  // el popup va como hermano del panel: dentro de un ancestro animado (transform) quedaría recortado
+  return (<>
     <FormPanel title={`Cerrar producción ${produccion.codigo}`} size="lg" onClose={onClose} footer={<>
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="cerrar-form" disabled={busy} className={btnPrimary}>{busy ? "Guardando…" : "Cerrar producción"}</button>
     </>}>
       <form id="cerrar-form" noValidate className="flex flex-col gap-4" onSubmit={(e) => {
         e.preventDefault();
-        run(() => api.post(`/producciones/${produccion.id}/cerrar`, {
-          fecha,
-          lineas: produccion.detallePacks.map((p) => ({ packId: p.packId, real: real[p.packId] ?? 0 })),
-          reparto: Object.entries(reparto).filter(([, c]) => c > 0).map(([k, cantidad]) => {
-            const [sedeId, packId] = k.split("|").map(Number);
-            return { sedeId, packId, cantidad };
-          }),
-        }, { silent: true, success: `Producción ${produccion.codigo} cerrada: el stock ya está en las sedes.` }));
+        setConfirmar(true);
       }}>
         <ApiErrorBanner error={error} />
         <Field label="FECHA DE CIERRE"><input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className={inputCls} /></Field>
@@ -135,7 +138,10 @@ export function CerrarProduccionPanel({ produccion, sedes, onClose }: { producci
         </div>
       </form>
     </FormPanel>
-  );
+    <ConfirmModal tone="neutral" isOpen={confirmar} onClose={() => setConfirmar(false)} onConfirm={cerrar}
+      title={`¿Cerrar producción ${produccion.codigo}?`} confirmLabel="Cerrar producción"
+      description="Los packs que salieron pasan al stock de las sedes según el reparto. No se puede deshacer." />
+  </>);
 }
 
 const cantidad = (n: number) => n.toLocaleString("es-AR", { maximumFractionDigits: n < 10 ? 1 : 0 });
