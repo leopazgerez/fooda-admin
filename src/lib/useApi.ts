@@ -30,7 +30,7 @@ export function useApiResource<T>(load: () => Promise<T>, deps: unknown[]) {
   return useLoad(load, JSON.stringify(deps));
 }
 
-export function useOptions<T>(path: string, q: Omit<ListQuery, "cursor" | "before" | "length"> = {}) {
+export function useOptions<T>(path: string, q: ListQuery = {}) {
   const { data, loading, error, reload } = useLoad(() => api.getAll<T>(path, q), path + JSON.stringify(q));
   return { options: data ?? [], loading, error, reload };
 }

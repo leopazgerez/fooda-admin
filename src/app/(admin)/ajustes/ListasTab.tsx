@@ -4,21 +4,21 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { ApiErrorBanner, Card, CardHead, ConfirmModal, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { Parametros } from "@/lib/apiTypes";
+import type { SettingsResponse as Parametros } from "@/lib/api.gen";
 import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
 import { AnimatePresence } from "motion/react";
 
-type Lista = "tiposGasto" | "motivos";
+type Lista = "expenseTypes" | "saleReasons";
 const LISTAS: { k: Lista; titulo: string; caption: string }[] = [
-  { k: "tiposGasto", titulo: "TIPOS DE GASTO", caption: "\"fijo\" es el que entra al indirecto por pack" },
-  { k: "motivos", titulo: "MOTIVOS DE VENTA", caption: "Por qué compró: sirve para medir recontactos" },
+  { k: "expenseTypes", titulo: "TIPOS DE GASTO", caption: "\"fijo\" es el que entra al indirecto por pack" },
+  { k: "saleReasons", titulo: "MOTIVOS DE VENTA", caption: "Por qué compró: sirve para medir recontactos" },
 ];
 interface Item { i: number; valor: string }
 
-/** Listas simples guardadas en /parametros. Renombrar o borrar no toca los registros que ya usan el valor. */
+/** Listas simples guardadas en /settings. Renombrar o borrar no toca los registros que ya usan el valor. */
 export default function ListasTab() {
   const [edit, setEdit] = useState<{ lista: Lista; i: number | null } | null>(null);
-  const { data, error, reload } = useApiResource(() => api.getOne<Parametros>("/parametros"), []);
+  const { data, error, reload } = useApiResource(() => api.getOne<Parametros>("/settings"), []);
   useReloadOnWrite(reload);
   const columnas: Columna<Item>[] = [{ key: "valor", header: "VALOR", className: "text-brand-dark", render: (x) => <>
     {x.valor}{x.valor === "fijo" && <span className="ml-2"><Tag>Calcula el indirecto · no se edita</Tag></span>}
@@ -31,15 +31,16 @@ export default function ListasTab() {
           <CardHead title={l.titulo} caption={l.caption}
             right={<button type="button" onClick={() => setEdit({ lista: l.k, i: null })} className={btnSecondary}><Plus className="w-3.5 h-3.5" /> Agregar</button>} />
           <ListTable rows={(data?.[l.k] ?? []).map((valor, i) => ({ i, valor }))} rowKey={(x) => x.i} columns={columnas}
-            onRowClick={(x) => { if (!(l.k === "tiposGasto" && x.valor === "fijo")) setEdit({ lista: l.k, i: x.i }); }} empty="Vacía." />
+            onRowClick={(x) => { if (!(l.k === "expenseTypes" && x.valor === "fijo")) setEdit({ lista: l.k, i: x.i }); }} empty="Vacía." />
         </Card>
       ))}
-      <AnimatePresence>{edit && data && <ItemForm valores={data[edit.lista]} lista={edit.lista} i={edit.i} onClose={() => setEdit(null)} />}</AnimatePresence>
+      <AnimatePresence>{edit && data && <ItemForm ajustes={data} lista={edit.lista} i={edit.i} onClose={() => setEdit(null)} />}</AnimatePresence>
     </div>
   );
 }
 
-function ItemForm({ valores, lista, i, onClose }: { valores: string[]; lista: Lista; i: number | null; onClose: () => void }) {
+function ItemForm({ ajustes, lista, i, onClose }: { ajustes: Parametros; lista: Lista; i: number | null; onClose: () => void }) {
+  const valores = ajustes[lista];
   const [valor, setValor] = useState(i === null ? "" : valores[i]);
   const [borrar, setBorrar] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -49,7 +50,8 @@ function ItemForm({ valores, lista, i, onClose }: { valores: string[]; lista: Li
     setError(null);
     setBusy(true);
     try {
-      await api.put("/parametros", { [lista]: nuevos }, { silent: true, success });
+      // PUT: la API pide el objeto completo (con version)
+      await api.put("/settings", { ...ajustes, [lista]: nuevos }, { silent: true, success });
       onClose();
     } catch (err) {
       setError(err);

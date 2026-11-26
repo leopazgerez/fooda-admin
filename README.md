@@ -5,26 +5,28 @@ Lo usa una sola persona, la dueña. Cubre el ciclo completo: planificar una prod
 repartir el stock entre sedes, vender, y ver caja y ganancia del mes.
 
 Next.js 16 (App Router) + React 19 + Tailwind v4 + TypeScript, exportado como sitio estático (GitHub Pages).
-Toda la data pasa por una API REST con JWT. Mientras no exista el backend, la API corre simulada en el navegador.
+Toda la data pasa por una API REST con JWT: [fooda-api](../fooda-api) (Spring Boot). Su README y su Swagger
+(`http://localhost:8080/swagger-ui.html`) son el contrato.
 
 ```bash
-cp .env.example .env.local   # para el prototipo: NEXT_PUBLIC_API_URL=mock
+cp .env.example .env.local   # NEXT_PUBLIC_API_URL=http://localhost:8080/api
 npm install
-npm run dev      # http://localhost:3000 — usuario admin@fooda.com, contraseña demo
+npm run dev      # http://localhost:3000 — con fooda-api levantada; usuario: APP_ADMIN_* de fooda-api
 npm run build    # export estático en out/ (también es el type check)
 npm run lint
 npm test         # node --test sobre src/lib/**/*.test.ts
+npm run api:types  # regenera src/lib/api.gen.ts desde el OpenAPI (con fooda-api levantada en :8080)
 ```
 
 ## Estado
 
 - **Todas las pantallas leen y escriben por la API** (`src/lib/api.ts`). No hay datos fijos en las pantallas.
-- **No hay backend todavía.** Con `NEXT_PUBLIC_API_URL=mock` responde un servidor simulado que corre en el navegador
-  y guarda los datos en `localStorage` (clave `fooda_mock_v1`): cada navegador tiene sus propios datos.
-  "Restaurar datos de ejemplo" (Ajustes) vuelve a los datos iniciales; ese botón solo aparece en modo simulado.
-- **El backend real** tiene que responder como el mock, que es la implementación de referencia:
-  el contrato lo definen `src/lib/mock/rutas-*.ts` y sus tests. Para conectarlo alcanza con cambiar
-  `NEXT_PUBLIC_API_URL`; si responde con otra forma, se adapta sólo `src/lib/api.ts`.
+- **Backend:** fooda-api. Para levantarla en local: `docker compose up -d`, `set -a; source .env.local; set +a`
+  y `./mvnw spring-boot:run` en ese repo. Rutas y campos en inglés (los de la API); el texto en pantalla, en español.
+- **Tipos:** `src/lib/api.gen.ts` se genera del OpenAPI de la API (`npm run api:types`) y se commitea. Si la API
+  cambia, se regenera y `npm run build` marca lo que hay que ajustar. Los cuerpos de escritura no están en el
+  OpenAPI: se tipan a mano en cada panel.
+- **Sesión:** el access token dura poco (15 min en la API); `api.ts` lo renueva solo con el refresh token.
 
 ## Pantallas
 
@@ -61,19 +63,19 @@ src/
                           Field, PageHead, estilos de inputs y botones); FeedbackLayer se importa directo
   config/                 app.ts (marca), nav.ts (menú), env.ts (NEXT_PUBLIC_*)
   lib/
-    api.ts                cliente HTTP (o el mock): api.getOne/getPage/getAll/post/patch/put/del, ApiError
-    apiQuery.ts           paginado por cursor y filtros codificados para las listas
-    apiTypes.ts           tipos de request/response, una sección por pantalla
+    api.ts                cliente HTTP: api.getOne/getAll/post/patch/put/del, ApiError, renovación de sesión
+    apiQuery.ts           paginado page/size de las listas y errores
+    api.gen.ts            tipos generados del OpenAPI de fooda-api (no editar a mano)
+    apiTypes.ts           tipos del front que no son respuestas de la API
+    etiquetas.ts          textos en español de los códigos que devuelve la API (estados, tipos de venta, …)
     useApi.ts             useApiResource, useOptions, useReloadOnWrite
     buscar.ts             búsqueda sin tildes (clientes por nombre o teléfono)
-    domain/               reglas de negocio puras y testeadas: costos, producción, stock, ventas, finanzas, clientes
-    mock/                 servidor simulado: rutas-catalogo / rutas-operacion / rutas-reportes, vistas, seed, store
     auth.tsx, session.ts, feedback.ts, dateUtils.ts, format.ts, assets.ts
 ```
 
 ## Reglas de negocio principales
 
-Están en `src/lib/domain/` (puras, con tests) y las aplica el mock. Las que más condicionan la UI:
+Las aplica fooda-api (`core/domain/` en ese repo); el front no las recalcula. Las que más condicionan la UI:
 
 - **Ventas:** se cobran completas antes de entregar. No hay saldo ni cobros parciales. Sin precio explícito,
   cada línea toma el precio propio del pack (o el general de Parámetros).
@@ -86,9 +88,8 @@ Están en `src/lib/domain/` (puras, con tests) y las aplica el mock. Las que má
 
 ## Agregar o cambiar una pantalla
 
-1. Endpoint implementado en `src/lib/mock/rutas-*.ts` con su test en `server.test.ts`.
-   Si hay una regla de negocio, va en `src/lib/domain/` con su test.
-2. Tipos en `src/lib/apiTypes.ts`.
+1. Endpoint en fooda-api (con sus tests allá).
+2. Tipos: `npm run api:types` con la API levantada; las pantallas importan de `@/lib/api.gen`.
 3. Pantalla en `src/app/(admin)/<pantalla>/`, tomando como modelo una existente (Finanzas es la más simple):
    - Datos: `useApiResource(() => api.getOne<T>(path), [deps])` + `useReloadOnWrite(reload)`; selects con `useOptions<T>(path)`.
    - Lista: `ListTable` con `Columna<T>[]` (`hideBelow` para ocultar columnas en mobile).
@@ -110,8 +111,8 @@ Están en `src/lib/domain/` (puras, con tests) y las aplica el mock. Las que má
 ## Tests
 
 `node --test` con type stripping nativo de Node (sin Jest ni bundler): los tests importan con extensión `.ts`
-y sólo pueden probar módulos puros (sin alias `@/`, sin JSX). Por eso la lógica vive en `lib/domain/`, `lib/mock/`
-y helpers como `buscar.ts`. `npm test` corre con `TZ=America/Argentina/Buenos_Aires`.
+y sólo pueden probar módulos puros (sin alias `@/`, sin JSX). Por eso la lógica testeable vive en helpers como
+`buscar.ts`, `session.ts`, `apiQuery.ts` y `etiquetas.ts`. `npm test` corre con `TZ=America/Argentina/Buenos_Aires`.
 
 ## Estilos, animaciones y fechas
 
@@ -127,5 +128,5 @@ y helpers como `buscar.ts`. `npm test` corre con `TZ=America/Argentina/Buenos_Ai
 ## Deploy
 
 Push a `main` dispara `.github/workflows/deploy.yml` (Node 20, `npm ci`, `npm run build`, sube `out/` a Pages).
-`NEXT_PUBLIC_API_URL` sale de la variable de repo del mismo nombre (Settings → Variables): `mock` para publicar
-el prototipo, o la URL del backend cuando exista. `NEXT_PUBLIC_BASE_PATH` lo informa GitHub Pages (`/fooda-admin` en github.io, vacío con dominio propio).
+`NEXT_PUBLIC_API_URL` sale de la variable de repo del mismo nombre (Settings → Variables): la URL pública
+de fooda-api (con `/api`). Sin esa variable el sitio publicado no tiene backend. `NEXT_PUBLIC_BASE_PATH` lo informa GitHub Pages (`/fooda-admin` en github.io, vacío con dominio propio).

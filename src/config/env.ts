@@ -23,11 +23,6 @@ export const env = {
    * Indica si la aplicación se está ejecutando en entorno de producción
    */
   isProduction: process.env.NODE_ENV === "production",
-
-  /**
-   * Prototipo: con NEXT_PUBLIC_API_URL=mock responde el servidor simulado del navegador (src/lib/mock/)
-   */
-  isMock: normalizeUrl(process.env.NEXT_PUBLIC_API_URL, "") === "mock",
 } as const;
 
 export default env;

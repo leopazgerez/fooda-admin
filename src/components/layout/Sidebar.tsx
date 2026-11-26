@@ -86,8 +86,8 @@ export default function Sidebar() {
       </aside>
       <ConfirmModal tone="neutral" isOpen={salir} onClose={() => setSalir(false)}
         title="¿Cerrar sesión?" description="Vas a salir del panel y tendrás que volver a ingresar." confirmLabel="Cerrar sesión"
-        onConfirm={() => {
-          logout();
+        onConfirm={async () => {
+          await logout();
           closeSidebar();
           router.replace("/login");
         }} />

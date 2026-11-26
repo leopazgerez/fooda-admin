@@ -5,7 +5,7 @@ import { Send, SlidersHorizontal } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
 import { ApiErrorBanner, Card, CardHead, ListTable, PageHead, Segmented, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { FilaStock, PackVista, SedeOpcion, StockVista, TrasladoVista } from "@/lib/apiTypes";
+import type { BranchResponse, PackResponse as PackVista, StockResponse as StockVista, StockRow as FilaStock, TransferResponse as TrasladoVista } from "@/lib/api.gen";
 import { formatDate } from "@/lib/dateUtils";
 import { useApiResource, useOptions, useReloadOnWrite } from "@/lib/useApi";
 import { AjustePanel, DespachoPanel } from "./StockPanels";
@@ -15,20 +15,20 @@ const TODAS = "TODAS";
 
 const colStock: Columna<FilaStock>[] = [
   { key: "lote", header: "LOTE", className: "font-mono whitespace-nowrap", render: (f) => <>
-    <span className="font-bold text-brand-dark">{f.lote}</span>
-    {f.fechaLote && <span className="block text-[10px] text-text-muted">{formatDate(f.fechaLote)}</span>}
+    <span className="font-bold text-brand-dark">{f.lot}</span>
+    {f.lotDate && <span className="block text-[10px] text-text-muted">{formatDate(f.lotDate)}</span>}
   </> },
-  { key: "sede", header: "SEDE", render: (f) => <Tag>{f.sede}</Tag> },
+  { key: "sede", header: "SEDE", render: (f) => <Tag>{f.branch}</Tag> },
   { key: "pack", header: "PACK", className: "text-brand-dark", render: (f) => f.pack },
-  { key: "packs", header: "PACKS", align: "right", className: "font-mono font-bold", render: (f) => f.cantidad },
+  { key: "packs", header: "PACKS", align: "right", className: "font-mono font-bold", render: (f) => f.quantity },
 ];
 
 const colTraslados: Columna<TrasladoVista>[] = [
-  { key: "fecha", header: "FECHA", className: "font-mono whitespace-nowrap text-text-secondary", render: (t) => formatDate(t.fecha) },
-  { key: "ruta", header: "RUTA", className: "whitespace-nowrap text-brand-dark", render: (t) => `${t.origen} → ${t.destino}` },
+  { key: "fecha", header: "FECHA", className: "font-mono whitespace-nowrap text-text-secondary", render: (t) => formatDate(t.date) },
+  { key: "ruta", header: "RUTA", className: "whitespace-nowrap text-brand-dark", render: (t) => `${t.origin} → ${t.destination}` },
   { key: "detalle", header: "DETALLE", hideBelow: "md", className: "text-text-secondary", render: (t) => <>
-    <span className="line-clamp-2">{t.lineas.map((l) => `${l.cantidad} × ${l.pack} (${l.lote})`).join(", ")}</span>
-    {t.notas && <span className="block text-[11px] text-text-muted">{t.notas}</span>}
+    <span className="line-clamp-2">{t.lines.map((l) => `${l.quantity} × ${l.pack} (${l.lot})`).join(", ")}</span>
+    {t.notes && <span className="block text-[11px] text-text-muted">{t.notes}</span>}
   </> },
   { key: "packs", header: "PACKS", align: "right", className: "font-mono font-bold", render: (t) => t.packs },
 ];
@@ -38,15 +38,15 @@ export default function StockPage() {
   const [panel, setPanel] = useState<"despacho" | "ajuste" | null>(null);
   const { data, error, reload } = useApiResource(() => Promise.all([
     api.getOne<StockVista>("/stock"),
-    api.getAll<TrasladoVista>("/traslados", { sortBy: "fecha", sortDir: "desc" }),
+    api.getAll<TrasladoVista>("/transfers"),
     api.getOne<PackVista[]>("/packs"),
   ]), []);
   useReloadOnWrite(reload);
-  const { options: sedes } = useOptions<SedeOpcion>("/sedes");
+  const { options: sedes } = useOptions<BranchResponse>("/branches");
 
-  const [stock, traslados, packs] = data ?? [{ filas: [], porSede: [] }, [], []];
-  const filas = sede === TODAS ? stock.filas : stock.filas.filter((f) => f.sede === sede);
-  const movidos = sede === TODAS ? traslados : traslados.filter((t) => t.origen === sede || t.destino === sede);
+  const [stock, traslados, packs] = data ?? [{ rows: [], byBranch: [] }, [], []];
+  const filas = sede === TODAS ? stock.rows : stock.rows.filter((f) => f.branch === sede);
+  const movidos = sede === TODAS ? traslados : traslados.filter((t) => t.origin === sede || t.destination === sede);
 
   return (
     <>
@@ -60,21 +60,21 @@ export default function StockPage() {
         <ApiErrorBanner error={error} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {stock.porSede.map((s) => (
-            <Stat key={s.sedeId} label={`STOCK ${s.sede.toUpperCase()}`} value={String(s.total)} unit="packs"
-              tag={s.alertas.length ? <span className="flex gap-1">
-                {s.alertas.includes("stock_bajo") && <Tag tone="danger">Stock bajo</Tag>}
-                {s.alertas.includes("lugar_libre") && <Tag tone="warning">Hay lugar para un viaje</Tag>}
+          {stock.byBranch.map((s) => (
+            <Stat key={s.branchId} label={`STOCK ${s.branch.toUpperCase()}`} value={String(s.total)} unit="packs"
+              tag={s.alerts.length ? <span className="flex gap-1">
+                {s.alerts.includes("low_stock") && <Tag tone="danger">Stock bajo</Tag>}
+                {s.alerts.includes("free_slots") && <Tag tone="warning">Hay lugar para un viaje</Tag>}
               </span> : undefined}
-              foot={<span className="font-mono">capacidad {s.capacidad} · {s.lugaresLibres} lugares libres</span>} />
+              foot={<span className="font-mono">capacidad {s.capacity} · {s.freeSlots} lugares libres</span>} />
           ))}
         </div>
 
         <Card className="p-4 flex flex-col gap-3">
           <CardHead title="STOCK POR LOTE" caption="Del lote más viejo al más nuevo: vendé primero los de arriba"
-            right={<Segmented options={[TODAS, ...stock.porSede.map((s) => s.sede)]} value={sede} onChange={setSede} />} />
-          <ListTable rows={filas} rowKey={(f) => `${f.sedeId}|${f.produccionId}|${f.packId}`} columns={colStock} empty="Sin stock."
-            footer={`${filas.reduce((a, f) => a + f.cantidad, 0)} packs en ${filas.length} lotes`} />
+            right={<Segmented options={[TODAS, ...stock.byBranch.map((s) => s.branch)]} value={sede} onChange={setSede} />} />
+          <ListTable rows={filas} rowKey={(f) => `${f.branchId}|${f.productionId}|${f.packId}`} columns={colStock} empty="Sin stock."
+            footer={`${filas.reduce((a, f) => a + f.quantity, 0)} packs en ${filas.length} lotes`} />
         </Card>
 
         <Card className="p-4 flex flex-col gap-3">
@@ -82,8 +82,8 @@ export default function StockPage() {
           <ListTable rows={movidos} rowKey={(t) => t.id} columns={colTraslados} empty="Sin traslados." footer={`${movidos.length} traslados`} />
         </Card>
       </main>
-      <AnimatePresence>{panel === "despacho" && <DespachoPanel sedes={sedes} filas={stock.filas} onClose={() => setPanel(null)} />}</AnimatePresence>
-      <AnimatePresence>{panel === "ajuste" && <AjustePanel sedes={sedes} packs={packs} filas={stock.filas} onClose={() => setPanel(null)} />}</AnimatePresence>
+      <AnimatePresence>{panel === "despacho" && <DespachoPanel sedes={sedes} filas={stock.rows} onClose={() => setPanel(null)} />}</AnimatePresence>
+      <AnimatePresence>{panel === "ajuste" && <AjustePanel sedes={sedes} packs={packs} filas={stock.rows} onClose={() => setPanel(null)} />}</AnimatePresence>
     </>
   );
 }

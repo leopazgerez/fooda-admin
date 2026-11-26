@@ -1,87 +1,41 @@
-export type FilterOperator =
-  | "EQUALS" | "NOT_EQUALS" | "LIKE" | "GREATER_THAN" | "LESS_THAN"
-  | "GREATER_OR_EQUAL" | "LESS_OR_EQUAL" | "BETWEEN" | "IN" | "IS_NULL" | "IS_NOT_NULL";
-
-export interface Criterion { field: string; operator: FilterOperator; value?: unknown }
-
+/** Listas de la API: `?page=&size=&sort=&dir=` más los filtros propios de cada ruta (ej. `/sales?customerId=`). */
 export interface ListQuery {
-  length?: number;
-  cursor?: string;
-  before?: string;
-  sortBy?: string;
-  sortDir?: "asc" | "desc";
-  search?: string;
-  filters?: Criterion[];
+  sort?: string;
+  dir?: "asc" | "desc";
+  params?: Record<string, string | number | undefined>;
 }
 
-export function encodeFilter(filters: Criterion[]): string | undefined {
-  if (filters.length === 0) return undefined;
-  const json = JSON.stringify({ combinator: "AND", filters });
-  return btoa(String.fromCharCode(...new TextEncoder().encode(json)));
-}
-
-export function toSearchParams(q: ListQuery): URLSearchParams {
+export function toSearchParams(q: ListQuery & { page?: number; size?: number }): URLSearchParams {
   const p = new URLSearchParams();
   const set = (k: string, v: string | number | undefined) => {
     if (v !== undefined && v !== "") p.set(k, String(v));
   };
-  set("length", q.length);
-  set("cursor", q.cursor);
-  set("before", q.before);
-  set("sortBy", q.sortBy);
-  set("sortDir", q.sortDir);
-  if (q.search?.trim()) p.set("search", q.search);
-  set("filter", encodeFilter(q.filters ?? []));
+  set("page", q.page);
+  set("size", q.size);
+  set("sort", q.sort);
+  set("dir", q.dir);
+  for (const [k, v] of Object.entries(q.params ?? {})) set(k, v);
   return p;
 }
 
-function localDayStart(ymd: string, plusDays = 0): string {
-  const [y, m, d] = ymd.split("-").map(Number);
-  return new Date(y, m - 1, d + plusDays).toISOString();
-}
-
-export function instantRangeCriteria(field: string, from?: string, to?: string): Criterion[] {
-  const out: Criterion[] = [];
-  if (from) out.push({ field, operator: "GREATER_OR_EQUAL", value: localDayStart(from) });
-  if (to) out.push({ field, operator: "LESS_THAN", value: localDayStart(to, 1) });
-  return out;
-}
-
-export function dateRangeCriteria(field: string, from?: string, to?: string): Criterion[] {
-  const out: Criterion[] = [];
-  if (from) out.push({ field, operator: "GREATER_OR_EQUAL", value: from });
-  if (to) out.push({ field, operator: "LESS_OR_EQUAL", value: to });
-  return out;
-}
-
-export async function collectAll<T>(
-  fetchPage: (cursor?: string) => Promise<{ items: T[]; nextCursor: string | null }>,
-): Promise<T[]> {
+/** Pide páginas desde 0 hasta juntar `total` (o hasta una página vacía). */
+export async function collectAll<T>(fetchPage: (page: number) => Promise<{ items: T[]; total: number }>): Promise<T[]> {
   const all: T[] = [];
-  let cursor: string | undefined;
-  do {
-    const page = await fetchPage(cursor);
-    all.push(...page.items);
-    cursor = page.nextCursor ?? undefined;
-  } while (cursor);
-  return all;
+  for (let page = 0; ; page++) {
+    const { items, total } = await fetchPage(page);
+    all.push(...items);
+    if (items.length === 0 || all.length >= total) return all;
+  }
 }
 
-export function errorInfo(status: number, body: unknown): { message: string; field?: string; details?: unknown } {
+/** La API responde los errores como `{message, status, timestamp, field?}`. */
+export function errorInfo(status: number, body: unknown): { message: string; field?: string } {
   if (body && typeof body === "object" && typeof (body as { message?: unknown }).message === "string") {
-    const b = body as { message: string; field?: unknown; details?: unknown };
-    return { message: b.message, field: typeof b.field === "string" ? b.field : undefined, details: b.details };
+    const b = body as { message: string; field?: unknown };
+    return typeof b.field === "string" ? { message: b.message, field: b.field } : { message: b.message };
   }
   return { message: `HTTP ${status}` };
 }
 
-/** How each list filter turns its value into criteria. An empty value ("") adds none. */
-export type FilterSpec = Record<string, (value: string) => Criterion[]>;
-
-/** The common case: field EQUALS value (cast it, e.g. Number for ids). */
-export const eq = (field: string, cast: (v: string) => unknown = (v) => v) =>
-  (value: string): Criterion[] => [{ field, operator: "EQUALS", value: cast(value) }];
-
-export function specCriteria(spec: FilterSpec, values: Record<string, string>): Criterion[] {
-  return Object.entries(spec).flatMap(([key, toCriteria]) => (values[key] ? toCriteria(values[key]) : []));
-}
+/** Escrituras que pueden cambiar datos de las vistas. Login/logout no: recargar las vistas al salir dispara 401 sin sesión. */
+export const firesWriteEvent = (method: string, path: string) => method !== "GET" && !path.startsWith("/auth/");

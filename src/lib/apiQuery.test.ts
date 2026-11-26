@@ -1,48 +1,59 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { encodeFilter, toSearchParams, instantRangeCriteria, dateRangeCriteria, collectAll, errorInfo } from "./apiQuery.ts";
+import { toSearchParams, collectAll, errorInfo, firesWriteEvent } from "./apiQuery.ts";
 
-test("encodeFilter: vacío → undefined", () => assert.equal(encodeFilter([]), undefined));
-test("encodeFilter: UTF-8", () => {
-  const f = encodeFilter([{ field: "city", operator: "EQUALS", value: "Córdoba" }])!;
-  assert.deepEqual(JSON.parse(Buffer.from(f, "base64").toString("utf8")),
-    { combinator: "AND", filters: [{ field: "city", operator: "EQUALS", value: "Córdoba" }] });
+test("toSearchParams: page, size, sort, dir y params no vacíos", () => {
+  assert.equal(
+    toSearchParams({ page: 1, size: 200, sort: "name", dir: "desc", params: { customerId: 7, from: "", to: undefined } }).toString(),
+    "page=1&size=200&sort=name&dir=desc&customerId=7",
+  );
 });
-test("toSearchParams omite vacíos", () => {
-  assert.equal(toSearchParams({ length: 20, search: "  ", filters: [], sortDir: "asc" }).toString(), "length=20&sortDir=asc");
+
+function pager(total: number, size = 200) {
+  const calls: number[] = [];
+  const fetchPage = (page: number) => {
+    calls.push(page);
+    const start = page * size;
+    const items = Array.from({ length: Math.max(0, Math.min(size, total - start)) }, (_, i) => start + i);
+    return Promise.resolve({ items, total });
+  };
+  return { calls, fetchPage };
+}
+
+test("collectAll: lista vacía → [] con una sola llamada", async () => {
+  const p = pager(0);
+  assert.deepEqual(await collectAll(p.fetchPage), []);
+  assert.deepEqual(p.calls, [0]);
 });
-test("instantRangeCriteria usa días locales (AR, UTC-3)", () => {
-  assert.deepEqual(instantRangeCriteria("soldAt", "2026-10-01", "2026-10-01"), [
-    { field: "soldAt", operator: "GREATER_OR_EQUAL", value: "2026-10-01T03:00:00.000Z" },
-    { field: "soldAt", operator: "LESS_THAN", value: "2026-10-02T03:00:00.000Z" },
-  ]);
-  assert.deepEqual(instantRangeCriteria("soldAt"), []);
+
+test("collectAll: total múltiplo exacto del tamaño no pide una página de más", async () => {
+  const p = pager(400);
+  assert.equal((await collectAll(p.fetchPage)).length, 400);
+  assert.deepEqual(p.calls, [0, 1]);
 });
-test("dateRangeCriteria", () => {
-  assert.deepEqual(dateRangeCriteria("incurredOn", undefined, "2026-10-31"),
-    [{ field: "incurredOn", operator: "LESS_OR_EQUAL", value: "2026-10-31" }]);
+
+test("collectAll: total no múltiplo junta todo", async () => {
+  const p = pager(250);
+  assert.equal((await collectAll(p.fetchPage)).length, 250);
+  assert.deepEqual(p.calls, [0, 1]);
 });
-test("collectAll sigue nextCursor", async () => {
-  const pages: Record<string, { items: number[]; nextCursor: string | null }> =
-    { "": { items: [1, 2], nextCursor: "a" }, a: { items: [3], nextCursor: null } };
-  assert.deepEqual(await collectAll((c) => Promise.resolve(pages[c ?? ""])), [1, 2, 3]);
+
+test("collectAll: una página vacía corta aunque total diga más", async () => {
+  const calls: number[] = [];
+  const out = await collectAll((page) => { calls.push(page); return Promise.resolve({ items: page === 0 ? [1] : [], total: 5 }); });
+  assert.deepEqual(out, [1]);
+  assert.deepEqual(calls, [0, 1]);
 });
-test("errorInfo", () => {
-  assert.deepEqual(errorInfo(409, { message: "Product still has stock", status: 409, details: { productId: 1 } }),
-    { message: "Product still has stock", field: undefined, details: { productId: 1 } });
+
+test("errorInfo: forma de la API {message, status, timestamp, field}", () => {
+  assert.deepEqual(errorInfo(409, { message: "Ese mes está cerrado", status: 409, timestamp: "2026-11-26T12:00:00Z", field: "date" }),
+    { message: "Ese mes está cerrado", field: "date" });
   assert.equal(errorInfo(502, "<html>").message, "HTTP 502");
 });
 
-test("specCriteria: sólo los filtros con valor, en el orden de la spec", async () => {
-  const { eq, specCriteria } = await import("./apiQuery.ts");
-  const spec = {
-    categoryId: eq("categoryId", Number),
-    kind: eq("kind"),
-    many: (v: string) => [{ field: "count", operator: v === "yes" ? "GREATER_THAN" as const : "EQUALS" as const, value: 1 }],
-  };
-  assert.deepEqual(specCriteria(spec, { kind: "", categoryId: "7", many: "yes", unknown: "x" }), [
-    { field: "categoryId", operator: "EQUALS", value: 7 },
-    { field: "count", operator: "GREATER_THAN", value: 1 },
-  ]);
-  assert.deepEqual(specCriteria(spec, {}), []);
+test("firesWriteEvent: escrituras de datos sí; GET y /auth/ no (el logout no debe recargar las vistas)", () => {
+  assert.equal(firesWriteEvent("POST", "/sales"), true);
+  assert.equal(firesWriteEvent("GET", "/sales"), false);
+  assert.equal(firesWriteEvent("POST", "/auth/logout"), false);
+  assert.equal(firesWriteEvent("POST", "/auth/login"), false);
 });

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { btnPrimary, btnSecondary, inputCls } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
-import type { ClienteOpcion } from "@/lib/apiTypes";
+import type { CustomerResponse as ClienteOpcion } from "@/lib/api.gen";
 import { buscarClientes } from "@/lib/buscar";
 
 /** Busca un cliente por nombre, apellido o teléfono; si no existe, lo crea ahí mismo. Sin cliente también es válido. */
@@ -20,7 +20,7 @@ export default function ClientePicker({ clientes, value, onChange }: {
   if (elegido) {
     return (
       <div className="flex items-center justify-between gap-2 px-3 py-2 border border-border-subtle rounded-xs bg-surface-alt text-sm">
-        <span className="truncate text-text-primary">{elegido.nombreCompleto}{elegido.telefono && <span className="ml-2 text-xs text-text-muted font-mono">{elegido.telefono}</span>}</span>
+        <span className="truncate text-text-primary">{elegido.fullName}{elegido.phone && <span className="ml-2 text-xs text-text-muted font-mono">{elegido.phone}</span>}</span>
         <button type="button" aria-label="Quitar cliente" onClick={() => onChange(null)} className="text-text-muted hover:text-text-primary cursor-pointer"><X className="w-3.5 h-3.5" /></button>
       </div>
     );
@@ -31,8 +31,8 @@ export default function ClientePicker({ clientes, value, onChange }: {
     setError(null);
     setBusy(true);
     try {
-      const c = await api.post<ClienteOpcion>("/clientes", {
-        nombre: nuevo.nombre.trim(), apellido: nuevo.apellido.trim(), ...(nuevo.telefono.trim() ? { telefono: nuevo.telefono.trim() } : {}),
+      const c = await api.post<ClienteOpcion>("/customers", {
+        firstName: nuevo.nombre.trim(), lastName: nuevo.apellido.trim(), ...(nuevo.telefono.trim() ? { phone: nuevo.telefono.trim() } : {}),
       }, { silent: true });
       setNuevo(null);
       setTexto("");
@@ -76,8 +76,8 @@ export default function ClientePicker({ clientes, value, onChange }: {
             <li key={c.id}>
               <button type="button" onClick={() => { onChange(c.id); setTexto(""); }}
                 className="w-full text-left px-3 py-2 text-sm hover:bg-surface-alt cursor-pointer flex justify-between gap-2">
-                <span className="truncate">{c.nombreCompleto}</span>
-                {c.telefono && <span className="text-xs text-text-muted font-mono shrink-0">{c.telefono}</span>}
+                <span className="truncate">{c.fullName}</span>
+                {c.phone && <span className="text-xs text-text-muted font-mono shrink-0">{c.phone}</span>}
               </button>
             </li>
           ))}

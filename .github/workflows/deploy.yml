@@ -41,8 +41,8 @@ jobs:
       - name: Build Next.js application
         env:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
-          # Sin backend todavía: por defecto la API simulada. Con backend, definir la variable de repo NEXT_PUBLIC_API_URL.
-          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'mock' }}
+          # URL de fooda-api (variable de repo NEXT_PUBLIC_API_URL).
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
         run: npm run build
 
       - name: Upload artifact

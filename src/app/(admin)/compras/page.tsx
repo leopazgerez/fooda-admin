@@ -5,8 +5,9 @@ import { Box, ListChecks, ShoppingCart, Wallet } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
 import { ApiErrorBanner, Card, CardHead, ListTable, PageHead, Segmented, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { CompraVista, Envases, InsumoOpcion, ProveedorOpcion } from "@/lib/apiTypes";
+import type { PackagingStatus as Envases, PurchaseResponse as CompraVista, Supplier, SupplyResponse } from "@/lib/api.gen";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
+import { ESTADO_COMPRA, etiqueta } from "@/lib/etiquetas";
 import { money } from "@/lib/format";
 import { useApiResource, useOptions, useReloadOnWrite } from "@/lib/useApi";
 import CompraPanel from "./CompraPanel";
@@ -19,28 +20,28 @@ export default function ComprasPage() {
   // undefined = cerrado; null = compra suelta; compra = registrar esa lista
   const [abierta, setAbierta] = useState<CompraVista | null | undefined>(undefined);
   const { data, error, reload } = useApiResource(
-    () => Promise.all([api.getAll<CompraVista>("/compras", { sortBy: "id", sortDir: "desc" }), api.getOne<Envases>("/envases")]), []);
+    () => Promise.all([api.getAll<CompraVista>("/purchases"), api.getOne<Envases>("/packaging")]), []);
   useReloadOnWrite(reload);
-  const { options: proveedores } = useOptions<ProveedorOpcion>("/proveedores");
-  const { options: insumos } = useOptions<InsumoOpcion>("/insumos");
+  const { options: proveedores } = useOptions<Supplier>("/suppliers");
+  const { options: insumos } = useOptions<SupplyResponse>("/supplies");
 
   const [compras, envases] = data ?? [[], null];
   const mes = toLocalISODate().slice(0, 7);
-  const porComprar = compras.filter((c) => c.estado === "pendiente");
-  const delMes = compras.filter((c) => c.estado === "comprada" && c.fecha?.startsWith(mes));
-  const rows = filtro === "TODAS" ? compras : compras.filter((c) => (c.estado === "pendiente") === (filtro === "POR COMPRAR"));
+  const porComprar = compras.filter((c) => c.status === "pending");
+  const delMes = compras.filter((c) => c.status === "bought" && c.date?.startsWith(mes));
+  const rows = filtro === "TODAS" ? compras : compras.filter((c) => (c.status === "pending") === (filtro === "POR COMPRAR"));
 
   const columnas: Columna<CompraVista>[] = [
-    { key: "proveedor", header: "PROVEEDOR", className: "font-bold text-brand-dark", render: (c) => c.proveedor },
-    { key: "produccion", header: "PRODUCCIÓN", className: "font-mono text-text-secondary whitespace-nowrap", render: (c) => c.produccion ?? "Suelta" },
+    { key: "proveedor", header: "PROVEEDOR", className: "font-bold text-brand-dark", render: (c) => c.supplier },
+    { key: "produccion", header: "PRODUCCIÓN", className: "font-mono text-text-secondary whitespace-nowrap", render: (c) => c.production ?? "Suelta" },
     { key: "items", header: "ÍTEMS", hideBelow: "md", className: "text-text-secondary",
-      render: (c) => <span className="line-clamp-2">{c.lineas.map((l) => l.insumo).join(", ")}</span> },
+      render: (c) => <span className="line-clamp-2">{c.lines.map((l) => l.supply).join(", ")}</span> },
     { key: "total", header: "TOTAL", align: "right", className: "font-mono font-bold text-brand-dark whitespace-nowrap",
-      render: (c) => <>{money(c.total)}{c.estado === "pendiente" && <span className="block text-[10px] font-normal text-text-muted">estimado</span>}</> },
-    { key: "estado", header: "ESTADO", align: "center", className: "whitespace-nowrap", render: (c) => c.estado === "comprada" ? (
+      render: (c) => <>{money(c.total)}{c.status === "pending" && <span className="block text-[10px] font-normal text-text-muted">estimado</span>}</> },
+    { key: "estado", header: "ESTADO", align: "center", className: "whitespace-nowrap", render: (c) => c.status === "bought" ? (
       <span className="inline-flex flex-col items-center gap-0.5">
-        <Tag tone="solid">Comprada</Tag>
-        {c.fecha && <span className="text-[10px] text-text-muted font-mono">{formatDate(c.fecha)}</span>}
+        <Tag tone="solid">{etiqueta(ESTADO_COMPRA, c.status)}</Tag>
+        {c.date && <span className="text-[10px] text-text-muted font-mono">{formatDate(c.date)}</span>}
       </span>
     ) : (
       <button type="button" onClick={() => setAbierta(c)} className={`${btnPrimary} py-1 text-[11px]`}>
@@ -63,8 +64,8 @@ export default function ComprasPage() {
           <Stat label="COMPRADO EN EL MES" icon={<Wallet className="w-3.5 h-3.5" />} value={money(delMes.reduce((a, c) => a + c.total, 0))}
             foot={`${delMes.length} compras registradas`} />
           <Stat label="ENVASES" icon={<Box className="w-3.5 h-3.5" />}
-            value={envases ? `${envases.bandeja.stock} / ${envases.sticker.stock}` : "—"} unit="bandejas / stickers"
-            foot={envases && (envases.bandeja.alcanza && envases.sticker.alcanza
+            value={envases ? `${envases.tray.stock} / ${envases.sticker.stock}` : "—"} unit="bandejas / stickers"
+            foot={envases && (envases.tray.enough && envases.sticker.enough
               ? "Alcanzan para la próxima producción"
               : <span className="text-danger">No alcanzan para la próxima producción</span>)} />
         </div>

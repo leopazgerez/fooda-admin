@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ApiErrorBanner, ConfirmModal, Field, FormPanel, btnPrimary, btnSecondary, inputCls, tdCls, thCls } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { PackVista, ProduccionResumen, RecetarioPack, SedeOpcion } from "@/lib/apiTypes";
+import type { BranchResponse as SedeOpcion, PackResponse as PackVista, ProductionResponse as ProduccionResumen, RecipeBookResponse as RecetarioPack } from "@/lib/api.gen";
 import { toLocalISODate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
 import { useApiResource } from "@/lib/useApi";
@@ -31,11 +31,11 @@ function useGuardar(onClose: () => void) {
 
 /** Planificar: solo cantidades por pack. El costo lo calcula el sistema con recetas y precios vigentes y queda congelado. */
 export function NuevaProduccionPanel({ packs, onClose }: { packs: PackVista[]; onClose: () => void }) {
-  const activos = packs.filter((p) => p.activo);
+  const activos = packs.filter((p) => p.active);
   const [cant, setCant] = useState<Record<number, number>>({});
   const [inicio, setInicio] = useState(toLocalISODate());
   const { busy, error, run } = useGuardar(onClose);
-  const total = activos.reduce((a, p) => a + (cant[p.id] ?? 0) * (p.costo?.total ?? 0), 0);
+  const total = activos.reduce((a, p) => a + (cant[p.id] ?? 0) * (p.cost?.total ?? 0), 0);
   const packsTotal = activos.reduce((a, p) => a + (cant[p.id] ?? 0), 0);
 
   return (
@@ -50,8 +50,8 @@ export function NuevaProduccionPanel({ packs, onClose }: { packs: PackVista[]; o
     </>}>
       <form id="produccion-form" noValidate className="flex flex-col gap-4" onSubmit={(e) => {
         e.preventDefault();
-        run(() => api.post<ProduccionResumen>("/producciones",
-          { inicio, lineas: activos.map((p) => ({ packId: p.id, planificada: cant[p.id] ?? 0 })) },
+        run(() => api.post<ProduccionResumen>("/productions",
+          { start: inicio, lines: activos.map((p) => ({ packId: p.id, planned: cant[p.id] ?? 0 })) },
           { silent: true, success: "Producción planificada. Ya tenés las listas de compra por proveedor en Compras." }));
       }}>
         <ApiErrorBanner error={error} />
@@ -64,13 +64,13 @@ export function NuevaProduccionPanel({ packs, onClose }: { packs: PackVista[]; o
           <tbody className="divide-y divide-border-faint">
             {activos.map((p) => (
               <tr key={p.id}>
-                <td className={tdCls}>{p.nombre}</td>
-                <td className={`${tdCls} font-mono text-right`}>{money(Math.round(p.costo?.total ?? 0))}</td>
+                <td className={tdCls}>{p.name}</td>
+                <td className={`${tdCls} font-mono text-right`}>{money(Math.round(p.cost?.total ?? 0))}</td>
                 <td className={`${tdCls} text-right`}>
-                  <input type="number" min={0} value={cant[p.id] ?? 0} aria-label={`Cantidad ${p.nombre}`}
+                  <input type="number" min={0} value={cant[p.id] ?? 0} aria-label={`Cantidad ${p.name}`}
                     onChange={(e) => setCant({ ...cant, [p.id]: Math.max(0, Math.floor(Number(e.target.value) || 0)) })} className={num} />
                 </td>
-                <td className={`${tdCls} font-mono text-right max-sm:hidden`}>{money(Math.round((cant[p.id] ?? 0) * (p.costo?.total ?? 0)))}</td>
+                <td className={`${tdCls} font-mono text-right max-sm:hidden`}>{money(Math.round((cant[p.id] ?? 0) * (p.cost?.total ?? 0)))}</td>
               </tr>
             ))}
           </tbody>
@@ -82,25 +82,25 @@ export function NuevaProduccionPanel({ packs, onClose }: { packs: PackVista[]; o
 
 /** Cerrar: packs que salieron de verdad y cuántos se mandan a cada sede (el resto queda en la cocina). */
 export function CerrarProduccionPanel({ produccion, sedes, onClose }: { produccion: ProduccionResumen; sedes: SedeOpcion[]; onClose: () => void }) {
-  const destinos = sedes.filter((s) => !s.esCocina);
-  const [real, setReal] = useState<Record<number, number>>(Object.fromEntries(produccion.detallePacks.map((p) => [p.packId, p.planificada])));
+  const destinos = sedes.filter((s) => !s.kitchen);
+  const [real, setReal] = useState<Record<number, number>>(Object.fromEntries(produccion.packLines.map((p) => [p.packId, p.planned])));
   const [reparto, setReparto] = useState<Record<string, number>>({});
   const [fecha, setFecha] = useState(toLocalISODate());
   const { busy, error, run } = useGuardar(onClose);
   const [confirmar, setConfirmar] = useState(false);
   const entero = (v: string) => Math.max(0, Math.floor(Number(v) || 0));
-  const cerrar = () => run(() => api.post(`/producciones/${produccion.id}/cerrar`, {
-    fecha,
-    lineas: produccion.detallePacks.map((p) => ({ packId: p.packId, real: real[p.packId] ?? 0 })),
-    reparto: Object.entries(reparto).filter(([, c]) => c > 0).map(([k, cantidad]) => {
-      const [sedeId, packId] = k.split("|").map(Number);
-      return { sedeId, packId, cantidad };
+  const cerrar = () => run(() => api.post(`/productions/${produccion.id}/close`, {
+    date: fecha,
+    lines: produccion.packLines.map((p) => ({ packId: p.packId, actual: real[p.packId] ?? 0 })),
+    distribution: Object.entries(reparto).filter(([, c]) => c > 0).map(([k, quantity]) => {
+      const [branchId, packId] = k.split("|").map(Number);
+      return { branchId, packId, quantity };
     }),
-  }, { silent: true, success: `Producción ${produccion.codigo} cerrada: el stock ya está en las sedes.` }));
+  }, { silent: true, success: `Producción ${produccion.code} cerrada: el stock ya está en las sedes.` }));
 
   // el popup va como hermano del panel: dentro de un ancestro animado (transform) quedaría recortado
   return (<>
-    <FormPanel title={`Cerrar producción ${produccion.codigo}`} size="lg" onClose={onClose} footer={<>
+    <FormPanel title={`Cerrar producción ${produccion.code}`} size="lg" onClose={onClose} footer={<>
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="cerrar-form" disabled={busy} className={btnPrimary}>{busy ? "Guardando…" : "Cerrar producción"}</button>
     </>}>
@@ -114,20 +114,20 @@ export function CerrarProduccionPanel({ produccion, sedes, onClose }: { producci
           <table className="w-full min-w-[420px]">
             <thead><tr className="border-b border-border-subtle">
               <th className={thCls}>PACK</th><th className={`${thCls} text-right`}>PLANIF.</th><th className={`${thCls} text-right`}>SALIERON</th>
-              {destinos.map((s) => <th key={s.id} className={`${thCls} text-right`}>A {s.nombre.toUpperCase()}</th>)}
+              {destinos.map((s) => <th key={s.id} className={`${thCls} text-right`}>A {s.name.toUpperCase()}</th>)}
             </tr></thead>
             <tbody className="divide-y divide-border-faint">
-              {produccion.detallePacks.map((p) => (
+              {produccion.packLines.map((p) => (
                 <tr key={p.packId}>
-                  <td className={tdCls}>{p.nombre}</td>
-                  <td className={`${tdCls} font-mono text-right text-text-secondary`}>{p.planificada}</td>
+                  <td className={tdCls}>{p.name}</td>
+                  <td className={`${tdCls} font-mono text-right text-text-secondary`}>{p.planned}</td>
                   <td className={`${tdCls} text-right`}>
-                    <input type="number" min={0} value={real[p.packId] ?? 0} aria-label={`Salieron ${p.nombre}`}
+                    <input type="number" min={0} value={real[p.packId] ?? 0} aria-label={`Salieron ${p.name}`}
                       onChange={(e) => setReal({ ...real, [p.packId]: entero(e.target.value) })} className={num} />
                   </td>
                   {destinos.map((s) => (
                     <td key={s.id} className={`${tdCls} text-right`}>
-                      <input type="number" min={0} value={reparto[`${s.id}|${p.packId}`] ?? 0} aria-label={`${p.nombre} a ${s.nombre}`}
+                      <input type="number" min={0} value={reparto[`${s.id}|${p.packId}`] ?? 0} aria-label={`${p.name} a ${s.name}`}
                         onChange={(e) => setReparto({ ...reparto, [`${s.id}|${p.packId}`]: entero(e.target.value) })} className={num} />
                     </td>
                   ))}
@@ -139,7 +139,7 @@ export function CerrarProduccionPanel({ produccion, sedes, onClose }: { producci
       </form>
     </FormPanel>
     <ConfirmModal tone="neutral" isOpen={confirmar} onClose={() => setConfirmar(false)} onConfirm={cerrar}
-      title={`¿Cerrar producción ${produccion.codigo}?`} confirmLabel="Cerrar producción"
+      title={`¿Cerrar producción ${produccion.code}?`} confirmLabel="Cerrar producción"
       description="Los packs que salieron pasan al stock de las sedes según el reparto. No se puede deshacer." />
   </>);
 }
@@ -148,27 +148,27 @@ const cantidad = (n: number) => n.toLocaleString("es-AR", { maximumFractionDigit
 
 /** Recetario para cocinar el lote: ingredientes de cada menú ya multiplicados por los packs planificados. Solo lectura. */
 export function RecetarioPanel({ produccion, onClose }: { produccion: ProduccionResumen; onClose: () => void }) {
-  const { data, error } = useApiResource(() => api.getOne<RecetarioPack[]>(`/producciones/${produccion.id}/recetario`), [produccion.id]);
-  const nombre = (packId: number) => produccion.detallePacks.find((d) => d.packId === packId)?.nombre ?? `Pack ${packId}`;
+  const { data, error } = useApiResource(() => api.getOne<RecetarioPack[]>(`/productions/${produccion.id}/recipe-book`), [produccion.id]);
+  const nombre = (packId: number) => produccion.packLines.find((d) => d.packId === packId)?.name ?? `Pack ${packId}`;
   return (
-    <FormPanel title={`Recetario · ${produccion.codigo}`} size="lg" onClose={onClose}
+    <FormPanel title={`Recetario · ${produccion.code}`} size="lg" onClose={onClose}
       footer={<button type="button" onClick={onClose} className={btnSecondary}>Cerrar</button>}>
       <div className="flex flex-col gap-6">
         <ApiErrorBanner error={error} />
         {!data && !error && <p className="text-xs text-text-muted">Cargando…</p>}
         {data?.map((r) => (
           <section key={r.packId} className="flex flex-col gap-3">
-            <h3 className="text-sm font-bold text-text-primary">{nombre(r.packId)} <span className="font-mono font-normal text-text-secondary">· {r.cantidad} packs</span></h3>
+            <h3 className="text-sm font-bold text-text-primary">{nombre(r.packId)} <span className="font-mono font-normal text-text-secondary">· {r.quantity} packs</span></h3>
             {r.menus.map((m) => (
-              <div key={m.numero} className="flex flex-col gap-1">
-                <p className="text-xs font-semibold text-brand-dark"><span className="font-mono text-text-muted">N° {m.numero}</span> {m.plato}</p>
-                {m.compartidoCon && <p className="text-[11px] text-info">También va en {m.compartidoCon.nombre} ({m.compartidoCon.cantidad} packs): cociná {m.totalCombinado} porciones juntas.</p>}
+              <div key={m.number} className="flex flex-col gap-1">
+                <p className="text-xs font-semibold text-brand-dark"><span className="font-mono text-text-muted">N° {m.number}</span> {m.dish}</p>
+                {m.sharedWith && <p className="text-[11px] text-info">También va en {m.sharedWith.name} ({m.sharedWith.quantity} packs): cociná {m.combinedTotal} porciones juntas.</p>}
                 <table className="w-full">
                   <tbody className="divide-y divide-border-faint">
-                    {m.ingredientes.map((i) => (
-                      <tr key={i.nombre}>
-                        <td className={`${tdCls} py-1`}>{i.nombre}</td>
-                        <td className={`${tdCls} py-1 text-right font-mono whitespace-nowrap`}>{cantidad(i.cantidad)} {i.unidad}</td>
+                    {m.ingredients.map((i) => (
+                      <tr key={i.name}>
+                        <td className={`${tdCls} py-1`}>{i.name}</td>
+                        <td className={`${tdCls} py-1 text-right font-mono whitespace-nowrap`}>{cantidad(i.quantity)} {i.unit}</td>
                       </tr>
                     ))}
                   </tbody>

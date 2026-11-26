@@ -5,7 +5,8 @@ import { HandCoins, Plus, TrendingUp, Wallet } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
 import { ApiErrorBanner, Card, CardHead, ConfirmModal, ListTable, PageHead, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { Gasto, MesFinanzas, Parametros } from "@/lib/apiTypes";
+import type { ExpenseResponse as Gasto, MonthlyResponse as MesFinanzas, SettingsResponse as Parametros } from "@/lib/api.gen";
+import { MEDIO_PAGO, etiqueta } from "@/lib/etiquetas";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
 import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
@@ -21,55 +22,55 @@ export default function FinanzasPage() {
   const [cerrar, setCerrar] = useState<string | null>(null);
   const [cerrando, setCerrando] = useState(false);
   const { data, error, reload } = useApiResource(() => Promise.all([
-    api.getOne<MesFinanzas[]>("/finanzas/mensual"),
-    api.getAll<Gasto>("/gastos", { sortBy: "fecha", sortDir: "desc" }),
-    api.getOne<Parametros>("/parametros"),
+    api.getOne<MesFinanzas[]>("/finance/monthly"),
+    api.getAll<Gasto>("/expenses"),
+    api.getOne<Parametros>("/settings"),
   ]), []);
   useReloadOnWrite(reload);
   const [meses, gastos, parametros] = data ?? [[], [], null];
   const hoy = toLocalISODate().slice(0, 7);
-  const actual = meses.find((m) => m.mes === hoy);
+  const actual = meses.find((m) => m.month === hoy);
 
   const colMeses: Columna<MesFinanzas>[] = [
-    { key: "mes", header: "MES", className: "font-semibold text-brand-dark whitespace-nowrap capitalize", render: (m) => nombreMes(m.mes) },
-    { key: "prod", header: "PRODUCIDOS", align: "right", hideBelow: "md", className: "font-mono", render: (m) => m.producidos },
-    { key: "vend", header: "VENDIDOS", align: "right", hideBelow: "md", className: "font-mono", render: (m) => `${m.vendidos} · ${pct(m.pctVendido)}` },
-    { key: "ventas", header: "VENTAS", align: "right", hideBelow: "sm", className: "font-mono", render: (m) => money(m.ventas) },
-    { key: "gastos", header: "GASTOS", align: "right", hideBelow: "sm", className: "font-mono", render: (m) => money(m.gastosPagados) },
+    { key: "mes", header: "MES", className: "font-semibold text-brand-dark whitespace-nowrap capitalize", render: (m) => nombreMes(m.month) },
+    { key: "prod", header: "PRODUCIDOS", align: "right", hideBelow: "md", className: "font-mono", render: (m) => m.produced },
+    { key: "vend", header: "VENDIDOS", align: "right", hideBelow: "md", className: "font-mono", render: (m) => `${m.sold} · ${pct(m.soldRatio)}` },
+    { key: "ventas", header: "VENTAS", align: "right", hideBelow: "sm", className: "font-mono", render: (m) => money(m.sales) },
+    { key: "gastos", header: "GASTOS", align: "right", hideBelow: "sm", className: "font-mono", render: (m) => money(m.paidExpenses) },
     { key: "caja", header: "CAJA", align: "right", className: "font-mono", render: (m) =>
-      <span className={m.resultadoCaja < 0 ? "text-danger" : ""}>{money(m.resultadoCaja)}</span> },
+      <span className={m.cashResult < 0 ? "text-danger" : ""}>{money(m.cashResult)}</span> },
     { key: "ganancia", header: "GANANCIA", align: "right", className: "font-mono whitespace-nowrap", render: (m) => <>
-      <span className={m.ganancia < 0 ? "text-danger" : "text-success"}>{money(Math.round(m.ganancia))}</span>
-      <span className="block text-[10px] text-text-muted">{m.gananciaEnPacks} packs</span>
+      <span className={m.profit < 0 ? "text-danger" : "text-success"}>{money(Math.round(m.profit))}</span>
+      <span className="block text-[10px] text-text-muted">{m.profitInPacks} packs</span>
     </> },
     { key: "ind", header: "INDIRECTO / PACK", align: "right", hideBelow: "md", className: "font-mono whitespace-nowrap", render: (m) => <>
-      {money(Math.round(m.indirecto.valor))}
-      <span className="block">{m.indirecto.esReferencia ? <Tag>Referencia</Tag> : m.indirecto.provisorio ? <Tag tone="warning">Provisorio</Tag> : <Tag tone="solid">Cerrado</Tag>}</span>
+      {money(Math.round(m.overhead.value))}
+      <span className="block">{m.overhead.reference ? <Tag>Referencia</Tag> : m.overhead.provisional ? <Tag tone="warning">Provisorio</Tag> : <Tag tone="solid">Cerrado</Tag>}</span>
     </> },
-    { key: "estado", header: "", align: "right", render: (m) => m.cerrado ? <Tag tone="solid">Cerrado</Tag> : m.mes < hoy
-      ? <button type="button" onClick={() => setCerrar(m.mes)} className={`${btnSecondary} py-1 text-[11px]`}>Cerrar mes</button> : <Tag>En curso</Tag> },
+    { key: "estado", header: "", align: "right", render: (m) => m.closed ? <Tag tone="solid">Cerrado</Tag> : m.month < hoy
+      ? <button type="button" onClick={() => setCerrar(m.month)} className={`${btnSecondary} py-1 text-[11px]`}>Cerrar mes</button> : <Tag>En curso</Tag> },
   ];
 
   const colGastos: Columna<Gasto>[] = [
-    { key: "fecha", header: "FECHA", className: "font-mono whitespace-nowrap text-text-secondary", render: (g) => formatDate(g.fecha) },
+    { key: "fecha", header: "FECHA", className: "font-mono whitespace-nowrap text-text-secondary", render: (g) => formatDate(g.date) },
     { key: "detalle", header: "DETALLE", className: "text-brand-dark", render: (g) => <>
-      {g.detalle}
+      {g.detail}
       <span className="block mt-0.5 flex flex-wrap gap-1">
-        <Tag>{g.tipo}</Tag>
-        {g.medio === "packs" && <Tag tone="info">Pagado con packs</Tag>}
-        {g.origen && <Tag>Automático</Tag>}
-        {!g.pagado && <Tag tone="warning">Sin pagar</Tag>}
+        <Tag>{g.type}</Tag>
+        {g.method === "packs" && <Tag tone="info">Pagado con packs</Tag>}
+        {(g.purchaseId || g.saleId) && <Tag>Automático</Tag>}
+        {!g.paid && <Tag tone="warning">Sin pagar</Tag>}
       </span>
     </> },
-    { key: "medio", header: "MEDIO", hideBelow: "sm", className: "text-text-secondary capitalize", render: (g) => g.medio.replace("_", " ") },
-    { key: "monto", header: "MONTO", align: "right", className: "font-mono whitespace-nowrap", render: (g) => money(g.monto) },
+    { key: "medio", header: "MEDIO", hideBelow: "sm", className: "text-text-secondary", render: (g) => etiqueta(MEDIO_PAGO, g.method) },
+    { key: "monto", header: "MONTO", align: "right", className: "font-mono whitespace-nowrap", render: (g) => money(g.amount) },
   ];
 
   const confirmarCierre = async () => {
     if (!cerrar) return;
     setCerrando(true);
     try {
-      await api.post("/finanzas/cierres", { mes: cerrar }, { success: `${nombreMes(cerrar)} cerrado: el indirecto queda fijo.` });
+      await api.post("/finance/month-closes", { month: cerrar }, { success: `${nombreMes(cerrar)} cerrado: el indirecto queda fijo.` });
       setCerrar(null);
     } catch {
       // el toast de error ya lo muestra api
@@ -87,16 +88,16 @@ export default function FinanzasPage() {
         <ApiErrorBanner error={error} />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Stat label="COBRADO DEL MES" icon={<HandCoins className="w-3.5 h-3.5" />} value={money(actual?.cobros ?? 0)} foot={`${actual?.vendidos ?? 0} packs vendidos`} />
-          <Stat label="CAJA DEL MES" icon={<Wallet className="w-3.5 h-3.5" />} value={money(actual?.resultadoCaja ?? 0)}
-            foot={`cobrado − ${money(actual?.gastosPagados ?? 0)} de gastos`} />
-          <Stat label="GANANCIA DEL MES" icon={<TrendingUp className="w-3.5 h-3.5" />} value={money(Math.round(actual?.ganancia ?? 0))}
-            foot={`${actual?.gananciaEnPacks ?? 0} packs · costo real descontado`} />
+          <Stat label="COBRADO DEL MES" icon={<HandCoins className="w-3.5 h-3.5" />} value={money(actual?.payments ?? 0)} foot={`${actual?.sold ?? 0} packs vendidos`} />
+          <Stat label="CAJA DEL MES" icon={<Wallet className="w-3.5 h-3.5" />} value={money(actual?.cashResult ?? 0)}
+            foot={`cobrado − ${money(actual?.paidExpenses ?? 0)} de gastos`} />
+          <Stat label="GANANCIA DEL MES" icon={<TrendingUp className="w-3.5 h-3.5" />} value={money(Math.round(actual?.profit ?? 0))}
+            foot={`${actual?.profitInPacks ?? 0} packs · costo real descontado`} />
         </div>
 
         <Card className="p-4 flex flex-col gap-3">
           <CardHead title="MESES" caption="Cerrá un mes terminado para fijar su indirecto por pack" />
-          <ListTable rows={meses} rowKey={(m) => m.mes} columns={colMeses} empty="Sin movimientos." />
+          <ListTable rows={meses} rowKey={(m) => m.month} columns={colMeses} empty="Sin movimientos." />
         </Card>
 
         <Card className="p-4 flex flex-col gap-3">
@@ -104,7 +105,7 @@ export default function FinanzasPage() {
           <ListTable rows={gastos} rowKey={(g) => g.id} columns={colGastos} onRowClick={setPanel} empty="Sin gastos." footer={`${gastos.length} gastos`} />
         </Card>
       </main>
-      <AnimatePresence>{panel && <GastoPanel gasto={panel === "nuevo" ? null : panel} tipos={parametros?.tiposGasto ?? []} onClose={() => setPanel(null)} />}</AnimatePresence>
+      <AnimatePresence>{panel && <GastoPanel gasto={panel === "nuevo" ? null : panel} tipos={parametros?.expenseTypes ?? []} onClose={() => setPanel(null)} />}</AnimatePresence>
       <ConfirmModal tone="neutral" isOpen={!!cerrar} onClose={() => setCerrar(null)} onConfirm={confirmarCierre} isLoading={cerrando}
         title={cerrar ? `Cerrar ${nombreMes(cerrar)}` : ""} confirmLabel="Cerrar mes"
         description={cerrar ? `El indirecto por pack de ${nombreMes(cerrar)} queda fijo y deja de cambiar con nuevos gastos. No se puede deshacer.` : ""} />

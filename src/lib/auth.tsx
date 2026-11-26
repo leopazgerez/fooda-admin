@@ -3,7 +3,8 @@
 import { createContext, useContext, useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "./api";
-import type { CurrentUser, LoginResponse } from "./apiTypes";
+import type { SessionResponse } from "./api.gen";
+import type { CurrentUser } from "./apiTypes";
 import { clearSession, getSession, saveSession } from "./session";
 import { useApiResource } from "./useApi";
 import { ApiErrorBanner } from "@/components/ui";
@@ -11,12 +12,19 @@ import { ApiErrorBanner } from "@/components/ui";
 const UserContext = createContext<CurrentUser | null>(null);
 
 export async function login(email: string, password: string): Promise<void> {
-  const { accessToken, expiresAt, user } = await api.post<LoginResponse>("/auth/login", { email, password });
-  saveSession({ accessToken, expiresAt, user });
+  saveSession(await api.post<SessionResponse>("/auth/login", { email, password }, { silent: true }));
 }
 
-export function logout(): void {
-  clearSession();
+/** Revoca el refresh token en la API; la sesión local se borra aunque falle. */
+export async function logout(): Promise<void> {
+  const s = getSession();
+  try {
+    if (s) await api.post("/auth/logout", { refreshToken: s.refreshToken }, { quiet: true, silent: true });
+  } catch {
+    // la sesión local se cierra igual
+  } finally {
+    clearSession();
+  }
 }
 
 export function useCurrentUser(): CurrentUser {
@@ -28,8 +36,7 @@ export function useCurrentUser(): CurrentUser {
 const noop = () => () => {};
 
 function Me({ children }: { children: React.ReactNode }) {
-  // con NEXT_PUBLIC_API_URL=mock, /auth/login y /auth/me los responde el servidor simulado
-  const { data, error, reload } = useApiResource(() => api.getOne<CurrentUser>("/auth/me"), []);
+  const { data, error, reload } = useApiResource(() => api.getOne<CurrentUser>("/me"), []);
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-app-bg p-6">

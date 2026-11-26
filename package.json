@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "TZ=America/Argentina/Buenos_Aires node --test 'src/lib/**/*.test.ts'"
+    "test": "TZ=America/Argentina/Buenos_Aires node --test 'src/lib/**/*.test.ts'",
+    "api:types": "npx -y openapi-typescript@7.13.0 http://localhost:8080/v3/api-docs -o src/lib/api.gen.ts --properties-required-by-default --root-types --root-types-no-schema-prefix"
   },
   "dependencies": {
     "lucide-react": "^1.47.0",
