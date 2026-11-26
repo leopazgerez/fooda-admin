@@ -25,6 +25,10 @@ export default function ClientesPage() {
   ]), []);
   useReloadOnWrite(reload);
   const [clientes, avisos] = data ?? [[], { followUps: [], birthdays: [] }];
+  // el panel recibe el registro recargado (version al día), no la copia del click
+  const fresco = (c: ClienteVista) => clientes.find((x) => x.id === c.id) ?? c;
+  const enFicha = detalle && fresco(detalle);
+  const enForm = form && form !== "nuevo" ? fresco(form) : form;
   const dias = new Map(avisos.followUps.map((r) => [r.customer.id, r.daysWithoutPurchase]));
 
   const base = filtro === "PARA RECONTACTAR" ? clientes.filter((c) => dias.has(c.id))
@@ -65,8 +69,8 @@ export default function ClientesPage() {
           <ListTable rows={rows} rowKey={(c) => c.id} columns={columnas} onRowClick={setDetalle} empty="Sin clientes con este filtro." footer={`${rows.length} clientes`} />
         </Card>
       </main>
-      <AnimatePresence>{detalle && <ClienteDetalle cliente={detalle} onClose={() => setDetalle(null)} onEditar={() => { setForm(detalle); setDetalle(null); }} />}</AnimatePresence>
-      <AnimatePresence>{form && <ClienteForm cliente={form === "nuevo" ? null : form} onClose={() => setForm(null)} />}</AnimatePresence>
+      <AnimatePresence>{enFicha && <ClienteDetalle cliente={enFicha} onClose={() => setDetalle(null)} onEditar={() => { setForm(enFicha); setDetalle(null); }} />}</AnimatePresence>
+      <AnimatePresence>{enForm && <ClienteForm cliente={enForm === "nuevo" ? null : enForm} onClose={() => setForm(null)} />}</AnimatePresence>
     </>
   );
 }

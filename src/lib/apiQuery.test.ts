@@ -57,3 +57,10 @@ test("firesWriteEvent: escrituras de datos sí; GET y /auth/ no (el logout no de
   assert.equal(firesWriteEvent("POST", "/auth/logout"), false);
   assert.equal(firesWriteEvent("POST", "/auth/login"), false);
 });
+
+test("collectAll: una alta entre páginas corre los offsets; la fila repetida aparece una sola vez", async () => {
+  // página 0 = ids 3,2 · se crea el 4 · página 1 = ids 2,1 (el 2 se repite)
+  const paginas = [[{ id: 3 }, { id: 2 }], [{ id: 2 }, { id: 1 }], []];
+  const out = await collectAll((page) => Promise.resolve({ items: paginas[page], total: 4 }));
+  assert.deepEqual(out.map((x) => x.id), [3, 2, 1]);
+});

@@ -17,9 +17,9 @@ export async function login(email: string, password: string): Promise<void> {
 
 /** Revoca el refresh token en la API; la sesión local se borra aunque falle. */
 export async function logout(): Promise<void> {
-  const s = getSession();
   try {
-    if (s) await api.post("/auth/logout", { refreshToken: s.refreshToken }, { quiet: true, silent: true });
+    // el body se arma después de una posible renovación: el refresh token rota
+    if (getSession()) await api.post("/auth/logout", () => ({ refreshToken: getSession()?.refreshToken }), { quiet: true, silent: true });
   } catch {
     // la sesión local se cierra igual
   } finally {
@@ -50,7 +50,7 @@ function Me({ children }: { children: React.ReactNode }) {
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  // false on the server/hydration pass so the session (sessionStorage) is only read on the client
+  // false on the server/hydration pass so the session (localStorage) is only read on the client
   const mounted = useSyncExternalStore(noop, () => true, () => false);
   const hasSession = mounted && getSession() !== null;
   useEffect(() => {

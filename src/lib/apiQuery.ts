@@ -18,12 +18,24 @@ export function toSearchParams(q: ListQuery & { page?: number; size?: number }):
   return p;
 }
 
-/** Pide páginas desde 0 hasta juntar `total` (o hasta una página vacía). */
+/**
+ * Pide páginas desde 0 hasta juntar `total` (o hasta una página vacía). Las filas con `id` repetido se descartan:
+ * una alta mientras se cargan las páginas corre los offsets y repetiría la última fila de una página.
+ * ponytail: una baja en ese momento puede saltear una fila hasta la próxima recarga; paginar por cursor si molesta.
+ */
 export async function collectAll<T>(fetchPage: (page: number) => Promise<{ items: T[]; total: number }>): Promise<T[]> {
   const all: T[] = [];
+  const seen = new Set<unknown>();
   for (let page = 0; ; page++) {
     const { items, total } = await fetchPage(page);
-    all.push(...items);
+    for (const x of items) {
+      const id = (x as { id?: unknown } | null)?.id;
+      if (id !== undefined) {
+        if (seen.has(id)) continue;
+        seen.add(id);
+      }
+      all.push(x);
+    }
     if (items.length === 0 || all.length >= total) return all;
   }
 }

@@ -18,6 +18,8 @@ export default function PlatosTab() {
   ]), []);
   useReloadOnWrite(reload);
   const [platos, packs, insumos] = data ?? [[], [], []];
+  // el panel recibe el registro recargado (version al día), no la copia del click
+  const abierto = edit && edit !== "nuevo" ? platos.find((p) => p.id === edit.id) ?? edit : edit;
   const rows = platos.filter((p) => !q.trim() || normalizar(p.name).includes(normalizar(q)));
   const columnas: Columna<PlatoVista>[] = [
     { key: "plato", header: "PLATO", className: "font-semibold text-brand-dark", render: (p) => p.name },
@@ -35,7 +37,7 @@ export default function PlatosTab() {
       </div>
       <ListTable rows={rows} rowKey={(p) => p.id} columns={columnas} onRowClick={setEdit} empty="Sin platos."
         footer={`${rows.length} platos · costo de una porción con los precios vigentes`} />
-      <AnimatePresence>{edit && <PlatoPanel plato={edit === "nuevo" ? null : edit} insumos={insumos} onClose={() => setEdit(null)} />}</AnimatePresence>
+      <AnimatePresence>{abierto && <PlatoPanel plato={abierto === "nuevo" ? null : abierto} insumos={insumos} onClose={() => setEdit(null)} />}</AnimatePresence>
     </div>
   );
 }

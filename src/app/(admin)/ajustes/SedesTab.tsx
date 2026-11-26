@@ -6,6 +6,7 @@ import { ApiErrorBanner, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecond
 import { api, ApiError } from "@/lib/api";
 import type { BranchResponse, SaleResponse, StockResponse } from "@/lib/api.gen";
 import { toLocalISODate } from "@/lib/dateUtils";
+import { ALERTA_SEDE, ENVIO, etiqueta, opciones } from "@/lib/etiquetas";
 import { money } from "@/lib/format";
 import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
 import { AnimatePresence } from "motion/react";
@@ -25,6 +26,8 @@ export default function SedesTab() {
   ]), [mes]);
   useReloadOnWrite(reload);
   const [sedes, stock, ventas] = data ?? [[], { rows: [], byBranch: [] }, []];
+  // el panel recibe el registro recargado (version al día), no la copia del click
+  const abierta = edit && "id" in edit ? sedes.find((s) => s.id === edit.id) ?? edit : edit;
   const filas: Fila[] = sedes.map((s) => {
     const st = stock.byBranch.find((x) => x.branchId === s.id);
     const vs = ventas.filter((v) => v.branchId === s.id);
@@ -36,8 +39,7 @@ export default function SedesTab() {
     { key: "rol", header: "ROL", hideBelow: "sm", render: (s) => (s.kitchen ? <Tag tone="solid">Cocina</Tag> : <Tag tone="info">Punto de venta</Tag>) },
     { key: "stock", header: "STOCK", align: "right", className: "font-mono whitespace-nowrap", render: (s) => `${s.stock} / ${s.capacity}` },
     { key: "alertas", header: "ALERTAS", render: (s) => <span className="flex flex-wrap gap-1">
-      {s.alertas.includes("low_stock") && <Tag tone="danger">Stock bajo</Tag>}
-      {s.alertas.includes("free_slots") && <Tag tone="warning">Viaje</Tag>}
+      {s.alertas.map((a) => <Tag key={a} tone={a.toLowerCase() === "low_stock" ? "danger" : "warning"}>{etiqueta(ALERTA_SEDE, a.toLowerCase())}</Tag>)}
       {!s.alertas.length && <span className="text-text-muted">—</span>}
     </span> },
     { key: "umbral", header: "ALERTA STOCK", align: "right", hideBelow: "md", className: "font-mono", render: (s) => `≤ ${s.stockThreshold}` },
@@ -57,7 +59,7 @@ export default function SedesTab() {
       </div>
       <ListTable rows={filas} rowKey={(s) => s.id} columns={columnas} onRowClick={setEdit} empty="Sin sedes."
         footer="Tocá una sede para editar capacidad, alertas y envío" />
-      <AnimatePresence>{edit && <SedeForm sede={edit} onClose={() => setEdit(null)} />}</AnimatePresence>
+      <AnimatePresence>{abierta && <SedeForm sede={abierta} onClose={() => setEdit(null)} />}</AnimatePresence>
     </div>
   );
 }
@@ -114,8 +116,7 @@ function SedeForm({ sede, onClose }: { sede: Sede | SedeNueva; onClose: () => vo
           <div className="grid grid-cols-2 gap-3">
             <Field label="ENVÍO POR PACK">
               <select value={f.shipping.type} onChange={(e) => setF({ ...f, shipping: { ...f.shipping, type: e.target.value } })} className={selectCls}>
-                <option value="amount">Monto fijo ($)</option>
-                <option value="percentage">% del precio</option>
+                {opciones(ENVIO).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </Field>
             <Field label={f.shipping.type === "amount" ? "MONTO ($)" : "PORCENTAJE"}>

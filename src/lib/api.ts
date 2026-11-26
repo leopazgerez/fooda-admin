@@ -1,7 +1,7 @@
 import { env } from "@/config/env";
 import { collectAll, errorInfo, firesWriteEvent, toSearchParams, type ListQuery } from "./apiQuery";
 import { feedback } from "./feedback";
-import { clearSession, getSession, needsRefresh, refreshRejected, saveSession, shouldRetryWithRefresh, singleFlight, type Session } from "./session";
+import { clearSession, getSession, mutex, needsRefresh, refreshRejected, renewIfStale, saveSession, shouldRetryWithRefresh, type Session } from "./session";
 
 export class ApiError extends Error {
   status: number;
@@ -73,9 +73,12 @@ function toLogin(): void {
   window.location.href = `${env.basePath}/login/`;
 }
 
-/** Renews the session with the refresh token (it rotates). If the API refuses, the session is over. */
-const refresh = singleFlight(async (): Promise<void> => {
-  const s = getSession();
+/** Serializes renewals across tabs (Web Locks); a per-tab queue where the browser lacks it (non-HTTPS). */
+const lock: <T>(fn: () => Promise<T>) => Promise<T> =
+  typeof navigator !== "undefined" && navigator.locks ? <T>(fn: () => Promise<T>) => navigator.locks.request("fooda-refresh", fn) as Promise<T> : mutex();
+
+/** Renews the session with the refresh token (it rotates), unless someone already replaced `usedToken`. If the API refuses, the session is over. */
+const refresh = (usedToken: string) => renewIfStale(usedToken, lock, async (s) => {
   const { status, parsed } = s ? await raw("POST", "/auth/refresh", undefined, { refreshToken: s.refreshToken }) : { status: 401, parsed: undefined };
   if (status !== 200) {
     if (refreshRejected(status)) toLogin();
@@ -84,13 +87,20 @@ const refresh = singleFlight(async (): Promise<void> => {
   saveSession(parsed as Session);
 });
 
-/** Returns the parsed body as-is (204 → undefined). Renews the token before it expires, and once more on a 401. */
+/**
+ * Returns the parsed body as-is (204 → undefined). Renews the token before it expires, and once more on a 401.
+ * `body` may be a function: it is read after the renewal (logout must send the refresh token that is live then).
+ */
 async function send(method: string, path: string, query?: URLSearchParams, body?: unknown, retried = false): Promise<unknown> {
   const session = getSession();
-  if (session && needsRefresh(session) && path !== "/auth/login" && path !== "/auth/refresh") await refresh();
-  const { status, parsed } = await raw(method, path, query, body, getSession()?.accessToken);
-  if (shouldRetryWithRefresh(status, path, retried) && getSession()) {
-    await refresh();
+  if (session && needsRefresh(session) && path !== "/auth/login" && path !== "/auth/refresh") {
+    // the access token may still be valid: only a refused refresh stops the request, not a 5xx or a network error
+    await refresh(session.accessToken).catch((e) => { if (e instanceof ApiError && refreshRejected(e.status)) throw e; });
+  }
+  const token = getSession()?.accessToken;
+  const { status, parsed } = await raw(method, path, query, typeof body === "function" ? body() : body, token);
+  if (shouldRetryWithRefresh(status, path, retried) && token) {
+    await refresh(token);
     return send(method, path, query, body, true);
   }
   return finish(status, parsed, path);

@@ -6,12 +6,12 @@ import { ApiErrorBanner, Field, FormPanel, ListTable, btnPrimary, btnSecondary, 
 import { api, ApiError } from "@/lib/api";
 import type { PriceResponse as PrecioInsumo, Supplier as Proveedor, SupplyResponse as InsumoVista } from "@/lib/api.gen";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
+import { REGLA_COMPUESTO, UNIDAD, etiqueta, opciones } from "@/lib/etiquetas";
 import { money } from "@/lib/format";
 import { useApiResource } from "@/lib/useApi";
 
 const badField = "!border-danger ring-2 ring-danger/20";
 type UnidadInsumo = "g" | "ml" | "u";
-const UNIDADES: { v: UnidadInsumo; l: string }[] = [{ v: "g", l: "Gramos (g)" }, { v: "ml", l: "Mililitros (ml)" }, { v: "u", l: "Unidades (u)" }];
 
 /** Alta o edición de insumo. El precio se carga como un precio nuevo con fecha (el historial se conserva). */
 export default function InsumoPanel({ insumo, proveedores, onClose }: { insumo: InsumoVista | null; proveedores: Proveedor[]; onClose: () => void }) {
@@ -54,7 +54,7 @@ export default function InsumoPanel({ insumo, proveedores, onClose }: { insumo: 
       <form id="insumo-form" noValidate onSubmit={guardar} className="flex flex-col gap-4">
         <ApiErrorBanner error={error} />
         {compuesto && <p className="p-3 bg-surface-alt border border-border-subtle rounded-xs text-xs text-text-secondary">
-          Insumo compuesto: su costo sale del {insumo?.composite?.rule === "max" ? "más caro" : "promedio"} de sus partes. No lleva precio propio.
+          Insumo compuesto: su costo sale del {etiqueta(REGLA_COMPUESTO, insumo?.composite?.rule ?? "average")} de sus partes. No lleva precio propio.
         </p>}
         <Field label="NOMBRE"><input value={f.name} maxLength={80} onChange={(e) => setF({ ...f, name: e.target.value })} className={`${inputCls} ${bad("name")}`} /></Field>
         <div className="grid grid-cols-2 gap-3">
@@ -65,7 +65,7 @@ export default function InsumoPanel({ insumo, proveedores, onClose }: { insumo: 
           </Field>
           <Field label="UNIDAD">
             <select value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value as UnidadInsumo })} className={`${selectCls} ${bad("unit")}`}>
-              {UNIDADES.map((u) => <option key={u.v} value={u.v}>{u.l}</option>)}
+              {opciones(UNIDAD).map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
             </select>
           </Field>
           <Field label={`CONTENIDO DEL ENVASE (${f.unit})`} hint="Cuánto trae lo que comprás: el costo por unidad sale de acá">
@@ -100,7 +100,7 @@ const colPrecios: Columna<PrecioInsumo>[] = [
 function Precios({ insumo }: { insumo: InsumoVista }) {
   const [tick, setTick] = useState(0);
   const { data } = useApiResource(() => api.getOne<PrecioInsumo[]>(`/supplies/${insumo.id}/prices`), [insumo.id, tick]);
-  const [nuevo, setNuevo] = useState({ fecha: toLocalISODate(), precio: insumo.packagePrice });
+  const [nuevo, setNuevo] = useState({ fecha: toLocalISODate(), precio: insumo.packagePrice ?? 0 }); // null: todavía sin precio
   const [error, setError] = useState<string | null>(null);
   const agregar = async () => {
     setError(null);

@@ -28,6 +28,8 @@ export default function FinanzasPage() {
   ]), []);
   useReloadOnWrite(reload);
   const [meses, gastos, parametros] = data ?? [[], [], null];
+  // el panel recibe el registro recargado (version al día), no la copia del click
+  const abierto = panel && panel !== "nuevo" ? gastos.find((g) => g.id === panel.id) ?? panel : panel;
   const hoy = toLocalISODate().slice(0, 7);
   const actual = meses.find((m) => m.month === hoy);
 
@@ -105,7 +107,7 @@ export default function FinanzasPage() {
           <ListTable rows={gastos} rowKey={(g) => g.id} columns={colGastos} onRowClick={setPanel} empty="Sin gastos." footer={`${gastos.length} gastos`} />
         </Card>
       </main>
-      <AnimatePresence>{panel && <GastoPanel gasto={panel === "nuevo" ? null : panel} tipos={parametros?.expenseTypes ?? []} onClose={() => setPanel(null)} />}</AnimatePresence>
+      <AnimatePresence>{abierto && <GastoPanel gasto={abierto === "nuevo" ? null : abierto} tipos={parametros?.expenseTypes ?? []} onClose={() => setPanel(null)} />}</AnimatePresence>
       <ConfirmModal tone="neutral" isOpen={!!cerrar} onClose={() => setCerrar(null)} onConfirm={confirmarCierre} isLoading={cerrando}
         title={cerrar ? `Cerrar ${nombreMes(cerrar)}` : ""} confirmLabel="Cerrar mes"
         description={cerrar ? `El indirecto por pack de ${nombreMes(cerrar)} queda fijo y deja de cambiar con nuevos gastos. No se puede deshacer.` : ""} />

@@ -37,7 +37,7 @@ export default function CompraPanel({ compra, proveedores, insumos, onClose }: {
   const set = (k: number, cambio: Partial<Linea>) => setLineas((ls) => ls.map((l, i) => (i === k ? { ...l, ...cambio } : l)));
   const agregar = () => {
     const i = delProveedor.find((x) => !lineas.some((l) => l.supplyId === x.id)) ?? delProveedor[0];
-    if (i) setLineas([...lineas, { supplyId: i.id, quantity: i.content, packagePrice: i.packagePrice }]);
+    if (i) setLineas([...lineas, { supplyId: i.id, quantity: i.content, packagePrice: i.packagePrice ?? 0 }]); // null: insumo sin precio todavía
   };
 
   const guardar = async (e: React.SubmitEvent) => {

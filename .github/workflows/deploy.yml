@@ -43,7 +43,10 @@ jobs:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
           # URL de fooda-api (variable de repo NEXT_PUBLIC_API_URL).
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
-        run: npm run build
+        run: |
+          # sin la variable el sitio apuntaría a localhost: mejor que falle el deploy
+          test -n "$NEXT_PUBLIC_API_URL" || { echo "::error::Falta la variable de repo NEXT_PUBLIC_API_URL"; exit 1; }
+          npm run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

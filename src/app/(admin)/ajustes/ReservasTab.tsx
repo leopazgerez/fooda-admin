@@ -14,6 +14,8 @@ export default function ReservasTab() {
   const { data, error, reload } = useApiResource(() => api.getAll<Reserva>("/reserve-funds"), []);
   useReloadOnWrite(reload);
   const reservas = data ?? [];
+  // el panel recibe el registro recargado (version al día), no la copia del click
+  const abierta = edit && edit !== "nueva" ? reservas.find((r) => r.id === edit.id) ?? edit : edit;
   const suma = reservas.reduce((a, r) => a + r.percentage, 0);
   const columnas: Columna<Reserva>[] = [
     { key: "nombre", header: "RESERVA", className: "font-semibold text-brand-dark", render: (r) => r.name },
@@ -27,7 +29,7 @@ export default function ReservasTab() {
       </div>
       <ListTable rows={reservas} rowKey={(r) => r.id} columns={columnas} onRowClick={setEdit} empty="Sin reservas."
         footer={<span className={suma > 100 ? "text-danger" : ""}>Suman {suma} %{suma > 100 ? " — superan el 100 % de la ganancia" : ""}</span>} />
-      <AnimatePresence>{edit && <ReservaForm reserva={edit === "nueva" ? null : edit} onClose={() => setEdit(null)} />}</AnimatePresence>
+      <AnimatePresence>{abierta && <ReservaForm reserva={abierta === "nueva" ? null : abierta} onClose={() => setEdit(null)} />}</AnimatePresence>
     </div>
   );
 }

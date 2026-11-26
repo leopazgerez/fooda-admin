@@ -12,10 +12,26 @@ export function needsRefresh(s: Session, now: Date = new Date()): boolean {
   return Number.isNaN(t) || t - now.getTime() < MARGIN_MS;
 }
 
-/** Mientras una llamada está en curso, las demás reciben la misma promesa (el refresh token rota: dos renovaciones a la vez cierran la sesión). */
-export function singleFlight<T>(fn: () => Promise<T>): () => Promise<T> {
-  let pending: Promise<T> | null = null;
-  return () => (pending ??= fn().finally(() => { pending = null; }));
+/** Corre las funciones de a una, en orden (respaldo de navigator.locks donde no existe). */
+export function mutex(): <T>(fn: () => Promise<T>) => Promise<T> {
+  let tail: Promise<unknown> = Promise.resolve();
+  return (fn) => {
+    const run = tail.then(fn);
+    tail = run.catch(() => {});
+    return run;
+  };
+}
+
+/**
+ * El refresh token rota: dos renovaciones con el mismo token cierran la sesión. Bajo el lock (compartido entre
+ * pestañas), solo renueva si el access token guardado sigue siendo el que se usó; si cambió, otra llamada ya renovó.
+ */
+export function renewIfStale(usedToken: string, lock: <T>(fn: () => Promise<T>) => Promise<T>, renew: (s: Session | null) => Promise<void>): Promise<void> {
+  return lock(async () => {
+    const s = getSession();
+    if (s && s.accessToken !== usedToken) return;
+    await renew(s);
+  });
 }
 
 /** Un 401 en una ruta protegida se reintenta una sola vez, después de renovar. */
@@ -23,10 +39,10 @@ export function shouldRetryWithRefresh(status: number, path: string, alreadyRetr
   return status === 401 && !path.startsWith("/auth/") && !alreadyRetried;
 }
 
-/** Con el access token vencido la sesión sigue valiendo si hay refresh token: la valida la próxima renovación. */
+/** En localStorage para que todas las pestañas usen la misma sesión (el refresh token rota). Con el access token vencido la sesión sigue valiendo si hay refresh token: la valida la próxima renovación. */
 export function getSession(): Session | null {
   try {
-    const raw = sessionStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const s = JSON.parse(raw) as Session;
     return s?.accessToken && s.refreshToken ? s : null;
@@ -37,7 +53,7 @@ export function getSession(): Session | null {
 
 export function saveSession(s: Session): void {
   try {
-    sessionStorage.setItem(KEY, JSON.stringify(s));
+    localStorage.setItem(KEY, JSON.stringify(s));
   } catch {
     // storage blocked: the session lasts only until reload
   }
@@ -45,7 +61,7 @@ export function saveSession(s: Session): void {
 
 export function clearSession(): void {
   try {
-    sessionStorage.removeItem(KEY);
+    localStorage.removeItem(KEY);
   } catch {
     // nothing to clear
   }

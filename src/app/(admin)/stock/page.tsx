@@ -7,6 +7,7 @@ import { ApiErrorBanner, Card, CardHead, ListTable, PageHead, Segmented, Stat, T
 import { api } from "@/lib/api";
 import type { BranchResponse, PackResponse as PackVista, StockResponse as StockVista, StockRow as FilaStock, TransferResponse as TrasladoVista } from "@/lib/api.gen";
 import { formatDate } from "@/lib/dateUtils";
+import { ALERTA_SEDE, etiqueta } from "@/lib/etiquetas";
 import { useApiResource, useOptions, useReloadOnWrite } from "@/lib/useApi";
 import { AjustePanel, DespachoPanel } from "./StockPanels";
 import { AnimatePresence } from "motion/react";
@@ -63,8 +64,7 @@ export default function StockPage() {
           {stock.byBranch.map((s) => (
             <Stat key={s.branchId} label={`STOCK ${s.branch.toUpperCase()}`} value={String(s.total)} unit="packs"
               tag={s.alerts.length ? <span className="flex gap-1">
-                {s.alerts.includes("low_stock") && <Tag tone="danger">Stock bajo</Tag>}
-                {s.alerts.includes("free_slots") && <Tag tone="warning">Hay lugar para un viaje</Tag>}
+                {s.alerts.map((a) => <Tag key={a} tone={a.toLowerCase() === "low_stock" ? "danger" : "warning"}>{etiqueta(ALERTA_SEDE, a.toLowerCase())}</Tag>)}
               </span> : undefined}
               foot={<span className="font-mono">capacidad {s.capacity} · {s.freeSlots} lugares libres</span>} />
           ))}

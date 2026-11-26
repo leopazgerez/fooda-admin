@@ -6,7 +6,7 @@ import Topbar from "@/components/layout/Topbar";
 import { ApiErrorBanner, Card, CardHead, ListTable, PageHead, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { BranchTotal as StockSede, DashboardResponse as DashboardVista, ProductionSummary as ProduccionResumen } from "@/lib/api.gen";
-import { ENVASE, ESTADO_PRODUCCION, etiqueta } from "@/lib/etiquetas";
+import { ALERTA_SEDE, ENVASE, ESTADO_PRODUCCION, etiqueta } from "@/lib/etiquetas";
 import { formatDate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
 import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
@@ -21,8 +21,7 @@ const colStock: Columna<StockSede>[] = [
   { key: "libres", header: "LUGARES LIBRES", align: "right", hideBelow: "sm", className: "font-mono", render: (s) => s.freeSlots },
   { key: "alertas", header: "", align: "right", render: (s) => <span className="inline-flex gap-1">
     {/* ponytail: /dashboard manda los códigos en mayúsculas (hallazgo); toLowerCase hasta que la API lo unifique */}
-    {s.alerts.some((a) => a.toLowerCase() === "low_stock") && <Tag tone="danger">Stock bajo</Tag>}
-    {s.alerts.some((a) => a.toLowerCase() === "free_slots") && <Tag tone="warning">Hay lugar</Tag>}
+    {s.alerts.map((a) => <Tag key={a} tone={a.toLowerCase() === "low_stock" ? "danger" : "warning"}>{etiqueta(ALERTA_SEDE, a.toLowerCase())}</Tag>)}
     {!s.alerts.length && <Tag tone="success">OK</Tag>}
   </span> },
 ];

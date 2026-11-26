@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getSession, needsRefresh, refreshRejected, saveSession, shouldRetryWithRefresh, singleFlight, type Session } from "./session.ts";
+import { getSession, mutex, needsRefresh, refreshRejected, renewIfStale, saveSession, shouldRetryWithRefresh, type Session } from "./session.ts";
 
 const user = { id: 1, email: "a@b.c", fullName: "A", role: "ADMIN", permissions: [], emailVerified: true, active: true } as unknown as Session["user"];
 const ses = (accessExpiresAt: string, refreshToken = "r1"): Session => ({ accessToken: "a1", accessExpiresAt, refreshToken, user });
@@ -12,19 +12,46 @@ test("needsRefresh: menos de 60 s o fecha inválida", () => {
   assert.equal(needsRefresh(ses("no-es-fecha"), now), true);
 });
 
-test("singleFlight: llamadas simultáneas comparten una ejecución", async () => {
-  let count = 0;
-  const run = singleFlight(async () => ++count);
-  assert.deepEqual(await Promise.all([run(), run(), run()]), [1, 1, 1]);
-  assert.equal(count, 1);
-  assert.equal(await run(), 2);
+function memoryStorage() {
+  const store = new Map<string, string>();
+  (globalThis as { localStorage?: unknown }).localStorage = {
+    getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k),
+  };
+  return store;
+}
+
+test("mutex: corre las funciones de a una, aunque una falle", async () => {
+  const lock = mutex();
+  const log: string[] = [];
+  const paso = (n: string, falla = false) => lock(async () => { log.push(`${n}>`); await Promise.resolve(); log.push(`<${n}`); if (falla) throw new Error(n); });
+  await Promise.allSettled([paso("a", true), paso("b")]);
+  assert.deepEqual(log, ["a>", "<a", "b>", "<b"]);
 });
 
-test("singleFlight: después de un error vuelve a ejecutar", async () => {
-  let count = 0;
-  const run = singleFlight(async () => { count++; if (count === 1) throw new Error("x"); return count; });
-  await assert.rejects(run());
-  assert.equal(await run(), 2);
+test("renewIfStale: varias llamadas con el mismo token renuevan una sola vez", async () => {
+  memoryStorage();
+  saveSession(ses("2020-01-01T00:00:00Z"));
+  const lock = mutex();
+  let renovaciones = 0;
+  const renew = async () => { renovaciones++; saveSession({ ...ses("2099-01-01T00:00:00Z", "r2"), accessToken: "a2" }); };
+  await Promise.all([renewIfStale("a1", lock, renew), renewIfStale("a1", lock, renew), renewIfStale("a1", lock, renew)]);
+  assert.equal(renovaciones, 1);
+  assert.equal(getSession()?.refreshToken, "r2");
+});
+
+test("renewIfStale: si otra pestaña ya renovó (el token guardado cambió), no renueva", async () => {
+  memoryStorage();
+  saveSession({ ...ses("2099-01-01T00:00:00Z", "r2"), accessToken: "a2" });
+  let renovaciones = 0;
+  await renewIfStale("a1", mutex(), async () => { renovaciones++; });
+  assert.equal(renovaciones, 0);
+});
+
+test("renewIfStale: sin sesión guardada (logout en otra pestaña) igual llama a renew, que la da por terminada", async () => {
+  memoryStorage();
+  let recibido: unknown = "nada";
+  await renewIfStale("a1", mutex(), async (s) => { recibido = s; });
+  assert.equal(recibido, null);
 });
 
 test("shouldRetryWithRefresh: solo un 401 fuera de /auth/ y sin reintento previo", () => {
@@ -35,10 +62,7 @@ test("shouldRetryWithRefresh: solo un 401 fuera de /auth/ y sin reintento previo
 });
 
 test("getSession: con access vencido sigue si hay refresh token", () => {
-  const store = new Map<string, string>();
-  (globalThis as { sessionStorage?: unknown }).sessionStorage = {
-    getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k),
-  };
+  const store = memoryStorage();
   saveSession(ses("2020-01-01T00:00:00Z"));
   assert.equal(getSession()?.refreshToken, "r1");
   saveSession(ses("2020-01-01T00:00:00Z", ""));

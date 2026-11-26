@@ -20,6 +20,8 @@ export default function ProveedoresTab() {
   const { data, error, reload } = useApiResource(() => api.getAll<Proveedor>("/suppliers"), []);
   useReloadOnWrite(reload);
   const proveedores = data ?? [];
+  // el panel recibe el registro recargado (version al día), no la copia del click
+  const abierto = edit && edit !== "nuevo" ? proveedores.find((p) => p.id === edit.id) ?? edit : edit;
   return (
     <div className="flex flex-col gap-3">
       <ApiErrorBanner error={error} />
@@ -28,7 +30,7 @@ export default function ProveedoresTab() {
       </div>
       <ListTable rows={proveedores} rowKey={(p) => p.id} columns={columnas} onRowClick={setEdit} empty="Sin proveedores."
         footer="El orden es el de la lista de súper" />
-      <AnimatePresence>{edit && <ProveedorForm proveedor={edit === "nuevo" ? null : edit} siguiente={proveedores.reduce((a, p) => Math.max(a, p.sortOrder), 0) + 1} onClose={() => setEdit(null)} />}</AnimatePresence>
+      <AnimatePresence>{abierto && <ProveedorForm proveedor={abierto === "nuevo" ? null : abierto} siguiente={proveedores.reduce((a, p) => Math.max(a, p.sortOrder), 0) + 1} onClose={() => setEdit(null)} />}</AnimatePresence>
     </div>
   );
 }
