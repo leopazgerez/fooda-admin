@@ -1,108 +1,85 @@
 "use client";
 
 import { useState } from "react";
+import { Boxes, Percent, TrendingUp, Wallet } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
-import { ApiErrorBanner, Card, CardHead, Field, ListTable, PageHead, Tag, inputCls, selectCls, type Columna } from "@/components/ui";
+import { Field, PageHead, Stat, inputCls, selectCls } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { PackAnalysis as AnalisisPacks, VersionAt as VersionEn } from "@/lib/api.gen";
-import { formatDate } from "@/lib/dateUtils";
-import { money } from "@/lib/format";
-import { useApiResource } from "@/lib/useApi";
+import type { AnalysisSummary, BranchResponse, PackMargins } from "@/lib/api.gen";
+import { variacion } from "@/lib/analisis";
+import { useApiResource, useOptions } from "@/lib/useApi";
+import CostoGanancia from "./CostoGanancia";
+import Insumos from "./Insumos";
+import PorQue from "./PorQue";
+import Seccion, { consulta, pct, pesos, type Filtros } from "./Seccion";
+import Ventas from "./Ventas";
 
-const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-const etiqueta = (periodo: string, semana: boolean) =>
-  semana ? `sem. ${formatDate(periodo).slice(0, 5)}` : `${MESES[Number(periodo.slice(5, 7)) - 1]} ${periodo.slice(0, 4)}`;
-/** ¿La fecha cae en el período? (mes "AAAA-MM" o semana que arranca el lunes "AAAA-MM-DD"). */
-const enPeriodo = (dia: string, periodo: string, semana: boolean) => {
-  if (!semana) return dia.startsWith(periodo);
-  const fin = new Date(`${periodo}T00:00:00Z`);
-  fin.setUTCDate(fin.getUTCDate() + 7);
-  return dia >= periodo && dia < fin.toISOString().slice(0, 10);
-};
+/** Contra el período anterior: ▲ verde si subió, ▼ rojo si bajó. */
+function Variacion({ actual, anterior }: { actual: number; anterior: number }) {
+  const v = variacion(actual, anterior);
+  if (v === null) return <span>— sin datos del período anterior</span>;
+  return <span className={v >= 0 ? "text-success" : "text-danger"}>{v >= 0 ? "▲" : "▼"} {pct(Math.abs(v))} vs. período anterior</span>;
+}
 
-interface Fila { k: string; periodo: string; packId: number; pack: string; porSede: Record<number, number>; cantidad: number; monto: number; cambio: boolean }
-type Cambio = AnalisisPacks["changes"][number];
+/** Margen contra el período anterior, en puntos porcentuales (un % de un % confunde). */
+function Puntos({ actual, anterior }: { actual: number; anterior: number }) {
+  const d = Math.round((actual - anterior) * 100);
+  if (!anterior) return <span>— sin datos del período anterior</span>;
+  return <span className={d >= 0 ? "text-success" : "text-danger"}>{d >= 0 ? "▲" : "▼"} {Math.abs(d)} pts vs. período anterior ({pct(anterior)})</span>;
+}
 
-/** Ventas por pack, sede y período, con los cambios de composición marcados para ver si movieron las ventas. */
+/** Tablero de análisis: cada sección contesta una pregunta y carga por separado. */
 export default function AnalisisPage() {
-  const [desde, setDesde] = useState("");
-  const [hasta, setHasta] = useState("");
-  const [agrupar, setAgrupar] = useState<"month" | "week">("month");
-  const [abierto, setAbierto] = useState<string | null>(null);
-  const { data, error } = useApiResource(() => api.getOne<AnalisisPacks>("/analysis/packs",
-    { from: desde || undefined, to: hasta || undefined, groupBy: agrupar }), [desde, hasta, agrupar]);
-  const semana = agrupar === "week";
-  const sedes = [...new Map((data?.rows ?? []).map((f) => [f.branchId, f.branch])).entries()];
-
-  const filas = [...(data?.rows ?? []).reduce((m, f) => {
-    const k = `${f.period}|${f.packId}`;
-    const x = m.get(k) ?? { k, periodo: f.period, packId: f.packId, pack: f.pack, porSede: {}, cantidad: 0, monto: 0,
-      cambio: !!data?.changes.some((c) => c.packId === f.packId && enPeriodo(c.validFrom, f.period, semana)) };
-    x.porSede[f.branchId] = (x.porSede[f.branchId] ?? 0) + f.quantity;
-    x.cantidad += f.quantity;
-    x.monto += f.amount;
-    return m.set(k, x);
-  }, new Map<string, Fila>()).values()].sort((a, b) => b.periodo.localeCompare(a.periodo) || a.pack.localeCompare(b.pack));
-
-  const columnas: Columna<Fila>[] = [
-    { key: "periodo", header: "PERÍODO", className: "font-mono whitespace-nowrap text-text-secondary capitalize", render: (f) => etiqueta(f.periodo, semana) },
-    { key: "pack", header: "PACK", className: "font-semibold text-brand-dark whitespace-nowrap", render: (f) => <>
-      {f.pack}{f.cambio && <span className="ml-1"><Tag tone="info">Cambió composición</Tag></span>}
-    </> },
-    ...sedes.map(([id, nombre]): Columna<Fila> => ({ key: `s${id}`, header: nombre.toUpperCase(), align: "right", hideBelow: "sm",
-      className: "font-mono text-text-secondary", render: (f) => f.porSede[id] ?? 0 })),
-    { key: "cant", header: "PACKS", align: "right", className: "font-mono", render: (f) => f.cantidad },
-    { key: "monto", header: "FACTURADO", align: "right", hideBelow: "sm", className: "font-mono", render: (f) => money(f.monto) },
-  ];
-  const colCambios: Columna<Cambio>[] = [
-    { key: "fecha", header: "DESDE", className: "font-mono whitespace-nowrap text-text-secondary", render: (c) => formatDate(c.validFrom) },
-    { key: "pack", header: "PACK", className: "font-semibold text-brand-dark", render: (c) => c.pack },
-  ];
-  const total = filas.reduce((a, f) => a + f.cantidad, 0);
+  const [filtros, setFiltros] = useState<Filtros>({ desde: "", hasta: "", agrupar: "month", sede: null });
+  const set = (cambio: Partial<Filtros>) => setFiltros((f) => ({ ...f, ...cambio }));
+  const { options: sedes } = useOptions<BranchResponse>("/branches");
+  const resumen = useApiResource(() => api.getOne<AnalysisSummary>("/analysis/summary", consulta(filtros)), [filtros]);
+  const margen = useApiResource(() => api.getOne<PackMargins>("/analysis/packs/margin", consulta(filtros)), [filtros]);
+  const r = resumen.data;
 
   return (
     <>
       <Topbar section="Gestión" title="Análisis" />
       <main className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 w-full min-w-0">
-        <PageHead title="Análisis de packs" subtitle="Qué se vende, dónde y si un cambio de menú movió las ventas. Sin uso interno ni pagos con packs" />
-        <ApiErrorBanner error={error} />
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-xl">
-          <Field label="DESDE"><input type="date" value={desde || data?.from || ""} onChange={(e) => setDesde(e.target.value)} className={inputCls} /></Field>
-          <Field label="HASTA"><input type="date" value={hasta || data?.to || ""} onChange={(e) => setHasta(e.target.value)} className={inputCls} /></Field>
+        <PageHead title="Análisis de packs" subtitle="Qué se vende, dónde, cuánto deja y por qué cambió. Sin uso interno ni pagos con packs" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl">
+          <Field label="DESDE"><input type="date" value={filtros.desde || r?.from || ""} onChange={(e) => set({ desde: e.target.value })} className={inputCls} /></Field>
+          <Field label="HASTA"><input type="date" value={filtros.hasta || r?.to || ""} onChange={(e) => set({ hasta: e.target.value })} className={inputCls} /></Field>
           <Field label="AGRUPAR POR">
-            <select value={agrupar} onChange={(e) => setAgrupar(e.target.value as "month" | "week")} className={selectCls}>
+            <select value={filtros.agrupar} onChange={(e) => set({ agrupar: e.target.value as Filtros["agrupar"] })} className={selectCls}>
               <option value="month">Mes</option><option value="week">Semana</option>
+            </select>
+          </Field>
+          <Field label="SEDE">
+            <select value={filtros.sede ?? ""} onChange={(e) => set({ sede: e.target.value ? Number(e.target.value) : null })} className={selectCls}>
+              <option value="">Todas</option>
+              {sedes.filter((s) => !s.kitchen).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </Field>
         </div>
 
-        <Card className="p-4 flex flex-col gap-3">
-          <CardHead title="VENTAS POR PACK" caption={semana ? "Semanas de lunes a domingo" : undefined} />
-          <ListTable rows={filas} rowKey={(f) => f.k} columns={columnas} empty="Sin ventas en el período."
-            footer={`${total} packs · ${money(filas.reduce((a, f) => a + f.monto, 0))}`} />
-        </Card>
+        <Seccion titulo="RESUMEN" pregunta={r ? `Comparado con el ${r.previousFrom.split("-").reverse().join("/")} al ${r.previousTo.split("-").reverse().join("/")}` : "Comparado con el período anterior de igual duración"}
+          error={resumen.error} cargando={!r && !resumen.error}
+          vacio={!!r && !r.current.packs && !r.previous.packs && "Sin ventas en el período ni en el anterior."}>
+          {r && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <Stat label="PACKS VENDIDOS" icon={<Boxes className="w-3.5 h-3.5" />} value={String(r.current.packs)}
+                foot={<Variacion actual={r.current.packs} anterior={r.previous.packs} />} />
+              <Stat label="FACTURADO" icon={<Wallet className="w-3.5 h-3.5" />} value={pesos(r.current.amount)}
+                foot={<Variacion actual={r.current.amount} anterior={r.previous.amount} />} />
+              <Stat label="GANANCIA" icon={<TrendingUp className="w-3.5 h-3.5" />} value={pesos(r.current.profit)}
+                foot={<Variacion actual={r.current.profit} anterior={r.previous.profit} />} />
+              <Stat label="MARGEN" icon={<Percent className="w-3.5 h-3.5" />} value={pct(r.current.margin)}
+                foot={<Puntos actual={r.current.margin} anterior={r.previous.margin} />} />
+            </div>
+          )}
+        </Seccion>
 
-        <Card className="p-4 flex flex-col gap-3">
-          <CardHead title="CAMBIOS DE COMPOSICIÓN" caption="Tocá uno para ver qué menús cambiaron" />
-          <ListTable rows={data?.changes ?? []} rowKey={(c) => String(c.versionId)} columns={colCambios} empty="Sin cambios en el período."
-            onRowClick={(c) => setAbierto(abierto === String(c.versionId) ? null : String(c.versionId))}
-            expand={(c) => (abierto === String(c.versionId) ? <DetalleCambio cambio={c} /> : null)} />
-        </Card>
+        <Ventas filtros={filtros} />
+        <CostoGanancia data={margen.data} error={margen.error} />
+        <PorQue filtros={filtros} producciones={margen.data?.productions ?? []} />
+        <Insumos filtros={filtros} />
       </main>
     </>
   );
-}
-
-function DetalleCambio({ cambio }: { cambio: Cambio }) {
-  const { data, error } = useApiResource(() => api.getOne<VersionEn>(`/analysis/packs/${cambio.packId}/version-at`, { date: cambio.validFrom }), [cambio.versionId]);
-  if (error) return <ApiErrorBanner error={error} />;
-  if (!data) return <p className="text-xs text-text-muted">Cargando…</p>;
-  return data.changes.length ? (
-    <ul className="flex flex-col gap-1 text-xs">
-      {data.changes.map((x) => (
-        <li key={x.number}><span className="font-mono text-text-muted">N° {x.number}{x.newNumber !== x.number ? ` → ${x.newNumber}` : ""}</span>{" "}
-          <span className="line-through text-text-secondary">{x.before}</span> → <b className="text-text-primary">{x.after}</b></li>
-      ))}
-    </ul>
-  ) : <p className="text-xs text-text-muted">Mismos platos que la versión anterior.</p>;
 }

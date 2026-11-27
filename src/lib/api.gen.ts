@@ -820,6 +820,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/analysis/supplies/price-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["priceChanges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analysis/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analysis/productions/{id}/cost-drivers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["costDrivers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/analysis/packs": {
         parameters: {
             query?: never;
@@ -844,6 +892,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["versionAt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analysis/packs/margin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["margin"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analysis/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["events"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1766,6 +1846,69 @@ export interface components {
             /** Format: int64 */
             total: number;
         };
+        PackImpact: {
+            /** Format: int64 */
+            packId: number;
+            pack: string;
+            amount: number;
+        };
+        PriceChanges: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            supplies: components["schemas"]["SupplyPriceChange"][];
+        };
+        SupplyPriceChange: {
+            /** Format: int64 */
+            supplyId: number;
+            supply: string;
+            firstPrice: number;
+            lastPrice: number;
+            changePct: number;
+            impactPerPack: components["schemas"]["PackImpact"][];
+        };
+        AnalysisSummary: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: date */
+            previousFrom: string;
+            /** Format: date */
+            previousTo: string;
+            current: components["schemas"]["AnalysisTotals"];
+            previous: components["schemas"]["AnalysisTotals"];
+        };
+        AnalysisTotals: {
+            /** Format: int32 */
+            packs: number;
+            amount: number;
+            profit: number;
+            margin: number;
+        };
+        CostDriver: {
+            /** Format: int64 */
+            supplyId: number;
+            supply: string;
+            priceEffect: number;
+            quantityEffect: number;
+            total: number;
+        };
+        CostDrivers: {
+            /** Format: int64 */
+            productionId: number;
+            code: string;
+            /** Format: int64 */
+            previousProductionId: number | null;
+            previousCode: string | null;
+            /** Format: int64 */
+            packId: number;
+            pack: string;
+            totalBefore: number | null;
+            totalAfter: number;
+            drivers: components["schemas"]["CostDriver"][];
+        };
         AnalysisChange: {
             /** Format: int64 */
             packId: number;
@@ -1825,6 +1968,64 @@ export interface components {
             after: string;
             /** Format: int32 */
             newNumber: number;
+        };
+        AnalysisProductionCost: {
+            /** Format: int64 */
+            productionId: number;
+            code: string;
+            /** Format: date */
+            closedOn: string;
+            /** Format: int64 */
+            packId: number;
+            pack: string;
+            costPerPack: number;
+        };
+        PackMarginRow: {
+            /** Format: int64 */
+            packId: number;
+            pack: string;
+            /** Format: int32 */
+            sold: number;
+            avgPrice: number;
+            avgCost: number;
+            profitPerPack: number;
+            margin: number;
+        };
+        PackMargins: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            packs: components["schemas"]["PackMarginRow"][];
+            productions: components["schemas"]["AnalysisProductionCost"][];
+        };
+        AnalysisEvent: {
+            /** Format: date */
+            date: string;
+            kind: string;
+            /** Format: int64 */
+            packId: number | null;
+            pack: string | null;
+            /** Format: int64 */
+            dishId: number | null;
+            dish: string | null;
+            /** Format: int64 */
+            supplyId: number | null;
+            supply: string | null;
+            /** Format: int64 */
+            productionId: number | null;
+            production: string | null;
+            /** Format: int64 */
+            versionId: number | null;
+            before: number | null;
+            after: number | null;
+        };
+        AnalysisEvents: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            events: components["schemas"]["AnalysisEvent"][];
         };
     };
     responses: never;
@@ -1921,6 +2122,13 @@ export type PageCustomerResponse = components['schemas']['PageCustomerResponse']
 export type FollowUpResponse = components['schemas']['FollowUpResponse'];
 export type FollowUpsResponse = components['schemas']['FollowUpsResponse'];
 export type PageBranchResponse = components['schemas']['PageBranchResponse'];
+export type PackImpact = components['schemas']['PackImpact'];
+export type PriceChanges = components['schemas']['PriceChanges'];
+export type SupplyPriceChange = components['schemas']['SupplyPriceChange'];
+export type AnalysisSummary = components['schemas']['AnalysisSummary'];
+export type AnalysisTotals = components['schemas']['AnalysisTotals'];
+export type CostDriver = components['schemas']['CostDriver'];
+export type CostDrivers = components['schemas']['CostDrivers'];
 export type AnalysisChange = components['schemas']['AnalysisChange'];
 export type AnalysisRow = components['schemas']['AnalysisRow'];
 export type PackAnalysis = components['schemas']['PackAnalysis'];
@@ -1928,6 +2136,11 @@ export type Menu = components['schemas']['Menu'];
 export type PackVersion = components['schemas']['PackVersion'];
 export type VersionAt = components['schemas']['VersionAt'];
 export type VersionChange = components['schemas']['VersionChange'];
+export type AnalysisProductionCost = components['schemas']['AnalysisProductionCost'];
+export type PackMarginRow = components['schemas']['PackMarginRow'];
+export type PackMargins = components['schemas']['PackMargins'];
+export type AnalysisEvent = components['schemas']['AnalysisEvent'];
+export type AnalysisEvents = components['schemas']['AnalysisEvents'];
 export type $defs = Record<string, never>;
 export interface operations {
     get: {
@@ -4024,12 +4237,84 @@ export interface operations {
             };
         };
     };
+    priceChanges: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PriceChanges"];
+                };
+            };
+        };
+    };
+    summary: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                branchId?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AnalysisSummary"];
+                };
+            };
+        };
+    };
+    costDrivers: {
+        parameters: {
+            query?: {
+                packId?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CostDrivers"];
+                };
+            };
+        };
+    };
     packs: {
         parameters: {
             query?: {
                 from?: string;
                 to?: string;
                 groupBy?: string;
+                branchId?: number;
             };
             header?: never;
             path?: never;
@@ -4068,6 +4353,55 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["VersionAt"];
+                };
+            };
+        };
+    };
+    margin: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                branchId?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PackMargins"];
+                };
+            };
+        };
+    };
+    events: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                groupBy?: string;
+                branchId?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AnalysisEvents"];
                 };
             };
         };
