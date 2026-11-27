@@ -148,8 +148,8 @@ export function RecetarioPanel({ produccion, onClose }: { produccion: Produccion
                 {m.sharedWith && <p className="text-[11px] text-info">También va en {m.sharedWith.name} ({m.sharedWith.quantity} packs): cociná {m.combinedTotal} porciones juntas.</p>}
                 <table className="w-full">
                   <tbody className="divide-y divide-border-faint">
-                    {m.ingredients.map((i) => (
-                      <tr key={i.name}>
+                    {m.ingredients.map((i, idx) => (
+                      <tr key={idx}>
                         <td className={`${tdCls} py-1`}>{i.name}</td>
                         <td className={`${tdCls} py-1 text-right font-mono whitespace-nowrap`}>{cantidad(i.quantity)} {i.unit}</td>
                       </tr>
