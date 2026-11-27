@@ -69,3 +69,20 @@ export function clearSession(): void {
 
 /** La API rechazó el refresh token (vencido, revocado o falta): la sesión terminó. Un 5xx es pasajero y no la cierra. */
 export const refreshRejected = (status: number) => status === 400 || status === 401;
+
+/**
+ * Sin navigator.locks (http sin TLS, p. ej. el celular por la IP de la red) dos pestañas pueden renovar con el mismo
+ * refresh token: la que pierde recibe 401. Si en el plazo otra pestaña guardó un token nuevo, la sesión sigue.
+ * Espera porque el 401 de la que pierde puede llegar antes de que la otra termine de guardar.
+ */
+export async function otraPestanaRenovo(
+  enviado: string, espera = 2000, paso = 200, dormir: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
+): Promise<boolean> {
+  for (let t = 0; ; t += paso) {
+    const s = getSession();
+    if (!s) return false;
+    if (s.refreshToken !== enviado) return true;
+    if (t >= espera) return false;
+    await dormir(paso);
+  }
+}

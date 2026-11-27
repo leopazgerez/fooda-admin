@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getSession, mutex, needsRefresh, refreshRejected, renewIfStale, saveSession, shouldRetryWithRefresh, type Session } from "./session.ts";
+import { clearSession, getSession, mutex, needsRefresh, otraPestanaRenovo, refreshRejected, renewIfStale, saveSession, shouldRetryWithRefresh, type Session } from "./session.ts";
 
 const user = { id: 1, email: "a@b.c", fullName: "A", role: "ADMIN", permissions: [], emailVerified: true, active: true } as unknown as Session["user"];
 const ses = (accessExpiresAt: string, refreshToken = "r1"): Session => ({ accessToken: "a1", accessExpiresAt, refreshToken, user });
@@ -76,4 +76,37 @@ test("refreshRejected: solo 400/401 cierran la sesión; un 5xx no", () => {
   assert.equal(refreshRejected(400), true);
   assert.equal(refreshRejected(500), false);
   assert.equal(refreshRejected(503), false);
+});
+
+test("otraPestanaRenovo: si el refresh token guardado ya cambió, sigue sin esperar", async () => {
+  memoryStorage();
+  saveSession(ses("2099-01-01T00:00:00Z", "r2"));
+  let esperas = 0;
+  assert.equal(await otraPestanaRenovo("r1", 2000, 200, async () => { esperas++; }), true);
+  assert.equal(esperas, 0);
+});
+
+test("otraPestanaRenovo: espera a que la otra pestaña termine de guardar (su 401 puede llegar antes)", async () => {
+  memoryStorage();
+  saveSession(ses("2099-01-01T00:00:00Z", "r1"));
+  let esperas = 0;
+  const dormir = async () => { if (++esperas === 2) saveSession(ses("2099-01-01T00:00:00Z", "r2")); };
+  assert.equal(await otraPestanaRenovo("r1", 2000, 200, dormir), true);
+  assert.equal(esperas, 2);
+});
+
+test("otraPestanaRenovo: si nadie renovó en el plazo, la sesión terminó de verdad", async () => {
+  memoryStorage();
+  saveSession(ses("2099-01-01T00:00:00Z", "r1"));
+  let esperas = 0;
+  assert.equal(await otraPestanaRenovo("r1", 1000, 200, async () => { esperas++; }), false);
+  assert.equal(esperas, 5);
+});
+
+test("otraPestanaRenovo: sin sesión (logout en otra pestaña) no espera", async () => {
+  memoryStorage();
+  clearSession();
+  let esperas = 0;
+  assert.equal(await otraPestanaRenovo("r1", 2000, 200, async () => { esperas++; }), false);
+  assert.equal(esperas, 0);
 });

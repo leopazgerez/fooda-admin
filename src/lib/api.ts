@@ -1,7 +1,7 @@
 import { env } from "@/config/env";
 import { collectAll, errorInfo, firesWriteEvent, toSearchParams, type ListQuery } from "./apiQuery";
 import { feedback } from "./feedback";
-import { clearSession, getSession, mutex, needsRefresh, refreshRejected, renewIfStale, saveSession, shouldRetryWithRefresh, type Session } from "./session";
+import { clearSession, getSession, mutex, needsRefresh, otraPestanaRenovo, refreshRejected, renewIfStale, saveSession, shouldRetryWithRefresh, type Session } from "./session";
 
 export class ApiError extends Error {
   status: number;
@@ -81,6 +81,8 @@ const lock: <T>(fn: () => Promise<T>) => Promise<T> =
 const refresh = (usedToken: string) => renewIfStale(usedToken, lock, async (s) => {
   const { status, parsed } = s ? await raw("POST", "/auth/refresh", undefined, { refreshToken: s.refreshToken }) : { status: 401, parsed: undefined };
   if (status !== 200) {
+    // sin navigator.locks otra pestaña pudo haber rotado el token justo antes: entonces la sesión sigue con el suyo
+    if (s && refreshRejected(status) && await otraPestanaRenovo(s.refreshToken)) return;
     if (refreshRejected(status)) toLogin();
     throw new ApiError(status, errorInfo(status, parsed).message);
   }
