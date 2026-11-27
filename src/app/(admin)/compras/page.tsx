@@ -66,11 +66,11 @@ export default function ComprasPage() {
           accion={() => api.del(`/purchases/${c.id}`, { success: "Compra anulada." })} />
       </span>
     ) : (
-      <span className="inline-flex flex-wrap justify-center gap-1">
+      <span className="inline-flex flex-nowrap items-center justify-center gap-1">
+        {c.productionId !== null && <BotonesLista l={listaDe(c)} onReintentar={recargarListas} />}
         <button type="button" onClick={() => setAbierta(c)} className={`${btnPrimary} py-1 text-[11px]`}>
           <ShoppingCart className="w-3 h-3" /> Registrar compra
         </button>
-        {c.productionId !== null && <BotonesLista l={listaDe(c)} onReintentar={recargarListas} />}
       </span>
     ) },
   ];
@@ -113,20 +113,21 @@ const AYUDA = { cargando: "Cargando lista…", error: "No se pudo cargar la list
 
 /** Copiar o bajar la lista de un proveedor. Si la carga falló, tocar avisa y reintenta. */
 function BotonesLista({ l, onReintentar }: { l: EstadoLista; onReintentar: () => void }) {
-  const cls = `${btnSecondary} py-1 px-2 text-[11px]`;
+  const cls = `${btnSecondary} p-1.5`;
   const lista = typeof l === "object" ? l : null;
   const tocar = (accion: (x: { lista: ListaSuper; archivo: string }) => void) => () => {
     if (lista) return accion(lista);
     feedback.error("No se pudo cargar la lista de esta producción. Reintentando…");
     onReintentar();
   };
-  const props = { className: cls, disabled: l === "cargando" || l === "sin-lista", title: lista ? undefined : AYUDA[l as keyof typeof AYUDA] };
+  const ayuda = lista ? null : AYUDA[l as keyof typeof AYUDA];
+  const props = { className: cls, disabled: l === "cargando" || l === "sin-lista" };
   return <>
-    <button type="button" {...props} onClick={tocar((x) => copiarLista(x.lista))} aria-label="Copiar lista">
-      <Copy className="w-3 h-3" /> Copiar
+    <button type="button" {...props} onClick={tocar((x) => copiarLista(x.lista))} aria-label="Copiar lista" title={ayuda ?? "Copiar lista"}>
+      <Copy className="w-3.5 h-3.5" />
     </button>
-    <button type="button" {...props} onClick={tocar((x) => descargarPdf([x.lista], x.archivo))} aria-label="Descargar PDF">
-      <FileDown className="w-3 h-3" /> PDF
+    <button type="button" {...props} onClick={tocar((x) => descargarPdf([x.lista], x.archivo))} aria-label="Descargar PDF" title={ayuda ?? "Descargar PDF"}>
+      <FileDown className="w-3.5 h-3.5" />
     </button>
   </>;
 }
