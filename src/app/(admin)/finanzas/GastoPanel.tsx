@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ApiErrorBanner, BotonBaja, Field, FormPanel, btnPrimary, btnSecondary, inputCls, selectCls } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, btnPrimary, btnSecondary, inputCls, selectCls, campoErr } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { ExpenseResponse as Gasto } from "@/lib/api.gen";
 import { toLocalISODate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
 import { MEDIOS } from "../ventas/VentaPanel";
 
-const badField = "!border-danger ring-2 ring-danger/20";
 
 /** Alta o edición de un gasto. Los generados automáticamente (compra o pago con packs) se muestran en solo lectura. */
 export default function GastoPanel({ gasto, tipos, onClose }: { gasto: Gasto | null; tipos: string[]; onClose: () => void }) {
@@ -19,7 +18,7 @@ export default function GastoPanel({ gasto, tipos, onClose }: { gasto: Gasto | n
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const bad = (k: string) => (error instanceof ApiError && error.field === k ? badField : "");
+  const bad = (k: string) => (error instanceof ApiError && error.field === k ? campoErr : "");
 
   const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
@@ -46,7 +45,7 @@ export default function GastoPanel({ gasto, tipos, onClose }: { gasto: Gasto | n
     <FormPanel title={auto ? "Gasto automático" : gasto ? "Editar gasto" : "Registrar gasto"} onClose={onClose} footer={auto
       ? <button type="button" onClick={onClose} className={btnSecondary}>Cerrar</button>
       : <>
-        {gasto && <BotonBaja label="Eliminar" itemName={gasto.detail} className={`${btnSecondary} md:mr-auto text-danger`}
+        {gasto && <BotonBaja itemName={gasto.detail}
           accion={() => api.del(`/expenses/${gasto.id}`, { silent: true, success: "Gasto eliminado." })} onHecho={onClose} onError={setError} />}
         <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
         <button type="submit" form="gasto-form" disabled={busy || !f.detail.trim() || f.amount <= 0} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>

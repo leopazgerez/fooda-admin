@@ -5,8 +5,8 @@ import ConfirmModal from "./ConfirmModal";
 import { btnSecondary } from "./Erp";
 
 export interface BotonBajaProps {
-  /** Texto del botón: "Eliminar", "Anular venta", "Reabrir", … */
-  label: string;
+  /** Texto del botón; por defecto "Eliminar". */
+  label?: string;
   /** La llamada a la API. Con `onError`, usar `silent: true` (el error lo muestra el panel). */
   accion: () => Promise<unknown>;
   itemName?: string;
@@ -18,11 +18,13 @@ export interface BotonBajaProps {
   onHecho?: () => void;
   /** Si está, el error va al panel; si no, queda el toast que ya muestra api.ts. */
   onError?: (e: unknown) => void;
+  /** Botón chico para una fila de tabla (si no, va a la izquierda del pie de un panel). */
+  fila?: boolean;
   className?: string;
 }
 
 /** Botón + confirmación para anular, eliminar o reabrir. Un 409 de la API se muestra donde corresponde y no traba el botón. */
-export default function BotonBaja({ label, accion, itemName, title, description, confirmLabel, tone = "danger", onHecho, onError, className }: BotonBajaProps) {
+export default function BotonBaja({ label = "Eliminar", accion, itemName, title, description, confirmLabel, tone = "danger", onHecho, onError, fila, className }: BotonBajaProps) {
   const [abierto, setAbierto] = useState(false);
   const [busy, setBusy] = useState(false);
   const confirmar = async () => {
@@ -30,17 +32,16 @@ export default function BotonBaja({ label, accion, itemName, title, description,
     setBusy(true);
     try {
       await accion();
-      setAbierto(false);
       onHecho?.();
     } catch (e) {
-      setAbierto(false);
       onError?.(e);
     } finally {
+      setAbierto(false);
       setBusy(false);
     }
   };
   return <>
-    <button type="button" onClick={() => setAbierto(true)} className={className ?? `${btnSecondary} text-danger`}>{label}</button>
+    <button type="button" onClick={() => setAbierto(true)} className={className ?? `${btnSecondary} ${fila ? "py-0.5 px-2 text-[11px]" : "md:mr-auto"} ${tone === "danger" ? "text-danger" : ""}`}>{label}</button>
     <ConfirmModal isOpen={abierto} onClose={() => setAbierto(false)} onConfirm={confirmar} isLoading={busy} tone={tone}
       itemName={itemName} title={title} description={description} confirmLabel={confirmLabel} />
   </>;

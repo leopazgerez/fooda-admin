@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
-import { api, ApiError } from "@/lib/api";
-import type { DishResponse as PlatoVista, PackResponse as PackVista, RecipeLineResponse as LineaReceta, SupplyResponse as InsumoVista } from "@/lib/api.gen";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, selectCls, type Columna, campoMal } from "@/components/ui";
+import { api } from "@/lib/api";
+import type { DishResponse as PlatoVista, PackResponse as PackVista, RecipeLineResponse as LineaReceta } from "@/lib/api.gen";
+import type { Insumo as InsumoVista } from "@/lib/apiTypes";
 import { normalizar } from "@/lib/buscar";
 import { money } from "@/lib/format";
-import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
+import { useApiResource, useReloadOnWrite, vigente } from "@/lib/useApi";
 import { AnimatePresence } from "motion/react";
 
 export default function PlatosTab() {
@@ -18,8 +19,7 @@ export default function PlatosTab() {
   ]), []);
   useReloadOnWrite(reload);
   const [platos, packs, insumos] = data ?? [[], [], []];
-  // el panel recibe el registro recargado (version al día), no la copia del click
-  const abierto = edit && edit !== "nuevo" ? platos.find((p) => p.id === edit.id) ?? edit : edit;
+  const abierto = vigente(platos, edit);
   const rows = platos.filter((p) => !q.trim() || normalizar(p.name).includes(normalizar(q)));
   const columnas: Columna<PlatoVista>[] = [
     { key: "plato", header: "PLATO", className: "font-semibold text-brand-dark", render: (p) => p.name },
@@ -47,7 +47,7 @@ function PlatoPanel({ plato, insumos, onClose }: { plato: PlatoVista | null; ins
   const [receta, setReceta] = useState<LineaReceta[]>(plato?.recipe.map((l) => ({ ...l })) ?? []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const bad = (k: string) => (error instanceof ApiError && error.field === k ? "!border-danger ring-2 ring-danger/20" : "");
+  const bad = (k: string) => campoMal(error, k);
   const set = (i: number, c: Partial<LineaReceta>) => setReceta(receta.map((l, j) => (j === i ? { ...l, ...c } : l)));
   const activos = insumos.filter((i) => i.active && !i.packagingType);
 
@@ -72,7 +72,7 @@ function PlatoPanel({ plato, insumos, onClose }: { plato: PlatoVista | null; ins
 
   return (
     <FormPanel title={plato ? plato.name : "Nuevo plato"} size="lg" onClose={onClose} footer={<>
-      {plato && <BotonBaja label="Eliminar" itemName={plato.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué." className={`${btnSecondary} md:mr-auto text-danger`}
+      {plato && <BotonBaja itemName={plato.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué."
         accion={() => api.del(`/dishes/${plato.id}`, { silent: true, success: `${plato.name} eliminado.` })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="plato-form" disabled={busy || !nombre.trim() || !receta.length} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>

@@ -1,5 +1,6 @@
 export { default as ConfirmModal } from "./ConfirmModal";
 export { default as BotonBaja } from "./BotonBaja";
+export { default as AlertasSede } from "./AlertasSede";
 export type { ConfirmModalProps } from "./ConfirmModal";
 export { default as ApiErrorBanner } from "./ApiErrorBanner";
 export * from "./Erp";

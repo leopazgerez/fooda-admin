@@ -4,15 +4,14 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { ApiErrorBanner, ListTable, Tag, btnPrimary, inputCls, selectCls, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { Supplier, SupplyResponse as InsumoVista } from "@/lib/api.gen";
+import type { Supplier } from "@/lib/api.gen";
+import type { Insumo as InsumoVista } from "@/lib/apiTypes";
 import { normalizar } from "@/lib/buscar";
 import { money } from "@/lib/format";
-import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
+import { useApiResource, useReloadOnWrite, vigente } from "@/lib/useApi";
 import InsumoPanel from "./InsumoPanel";
 import { AnimatePresence } from "motion/react";
 
-const unidad = (u: string) => (u === "u" ? "u" : u);
-// ponytail: packagePrice llega null sin precio cargado aunque api.gen diga number (hallazgo); los tipos se corrigen solos al declararlo nullable en la API
 const sinPrecio = (i: InsumoVista) => !i.composite && i.packagePrice == null;
 const costo = (i: InsumoVista) => sinPrecio(i) ? "Sin precio" : (i.unit === "u" ? money(Math.round(i.unitCost)) : `${money(Math.round(i.unitCost * 1000))}/${i.unit === "g" ? "kg" : "l"}`);
 
@@ -22,8 +21,8 @@ const columnas: Columna<InsumoVista>[] = [
     {(i.composite || i.packagingType) && <span className="ml-1"><Tag>{i.composite ? "Compuesto" : "Envase"}</Tag></span>}
   </> },
   { key: "proveedor", header: "PROVEEDOR", hideBelow: "sm", className: "text-text-secondary", render: (i) => i.supplier },
-  { key: "envase", header: "ENVASE", hideBelow: "md", className: "font-mono whitespace-nowrap text-text-secondary", render: (i) => (i.composite ? "—" : `${i.content} ${unidad(i.unit)}`) },
-  { key: "precio", header: "PRECIO ENVASE", align: "right", hideBelow: "md", className: "font-mono", render: (i) => (i.composite ? "—" : sinPrecio(i) ? "Sin precio" : money(i.packagePrice)) },
+  { key: "envase", header: "ENVASE", hideBelow: "md", className: "font-mono whitespace-nowrap text-text-secondary", render: (i) => (i.composite ? "—" : `${i.content} ${i.unit}`) },
+  { key: "precio", header: "PRECIO ENVASE", align: "right", hideBelow: "md", className: "font-mono", render: (i) => (i.composite ? "—" : i.packagePrice === null ? "Sin precio" : money(i.packagePrice)) },
   { key: "costo", header: "COSTO", align: "right", className: "font-mono whitespace-nowrap", render: costo },
   { key: "activo", header: "", align: "right", hideBelow: "sm", render: (i) => (i.active ? null : <Tag>Inactivo</Tag>) },
 ];
@@ -37,8 +36,7 @@ export default function InsumosTab() {
   ]), []);
   useReloadOnWrite(reload);
   const [insumos, proveedores] = data ?? [[], []];
-  // el panel recibe el registro recargado (version al día), no la copia del click
-  const abierto = edit && edit !== "nuevo" ? insumos.find((i) => i.id === edit.id) ?? edit : edit;
+  const abierto = vigente(insumos, edit);
   const rows = insumos.filter((i) => (!prov || i.supplierId === prov) && (!q.trim() || normalizar(i.name).includes(normalizar(q))));
 
   return (

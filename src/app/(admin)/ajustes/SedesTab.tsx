@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
-import { api, ApiError } from "@/lib/api";
+import { AlertasSede, ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, selectCls, type Columna, campoMal } from "@/components/ui";
+import { api } from "@/lib/api";
 import type { BranchResponse, SaleResponse, StockResponse } from "@/lib/api.gen";
 import { toLocalISODate } from "@/lib/dateUtils";
-import { ALERTA_SEDE, ENVIO, etiqueta, opciones } from "@/lib/etiquetas";
+import { ENVIO, opciones } from "@/lib/etiquetas";
 import { money } from "@/lib/format";
-import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
+import { useApiResource, useReloadOnWrite, vigente } from "@/lib/useApi";
 import { AnimatePresence } from "motion/react";
 
 type Sede = BranchResponse;
@@ -26,8 +26,7 @@ export default function SedesTab() {
   ]), [mes]);
   useReloadOnWrite(reload);
   const [sedes, stock, ventas] = data ?? [[], { rows: [], byBranch: [] }, []];
-  // el panel recibe el registro recargado (version al día), no la copia del click
-  const abierta = edit && "id" in edit ? sedes.find((s) => s.id === edit.id) ?? edit : edit;
+  const abierta = vigente(sedes, edit);
   const filas: Fila[] = sedes.map((s) => {
     const st = stock.byBranch.find((x) => x.branchId === s.id);
     const vs = ventas.filter((v) => v.branchId === s.id);
@@ -39,7 +38,7 @@ export default function SedesTab() {
     { key: "rol", header: "ROL", hideBelow: "sm", render: (s) => (s.kitchen ? <Tag tone="solid">Cocina</Tag> : <Tag tone="info">Punto de venta</Tag>) },
     { key: "stock", header: "STOCK", align: "right", className: "font-mono whitespace-nowrap", render: (s) => `${s.stock} / ${s.capacity}` },
     { key: "alertas", header: "ALERTAS", render: (s) => <span className="flex flex-wrap gap-1">
-      {s.alertas.map((a) => <Tag key={a} tone={a.toLowerCase() === "low_stock" ? "danger" : "warning"}>{etiqueta(ALERTA_SEDE, a.toLowerCase())}</Tag>)}
+      <AlertasSede alerts={s.alertas} />
       {!s.alertas.length && <span className="text-text-muted">—</span>}
     </span> },
     { key: "umbral", header: "ALERTA STOCK", align: "right", hideBelow: "md", className: "font-mono", render: (s) => `≤ ${s.stockThreshold}` },
@@ -68,7 +67,7 @@ function SedeForm({ sede, onClose }: { sede: Sede | SedeNueva; onClose: () => vo
   const [f, setF] = useState(sede);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const bad = (k: string) => (error instanceof ApiError && error.field === k ? "!border-danger ring-2 ring-danger/20" : "");
+  const bad = (k: string) => campoMal(error, k);
   const n = (k: "capacity" | "stockThreshold" | "freeSlotsThreshold") => (
     <input type="number" min={0} value={f[k]} onChange={(e) => setF({ ...f, [k]: Math.max(0, Number(e.target.value) || 0) })} className={`${inputCls} font-mono ${bad(k)}`} />
   );
@@ -98,7 +97,7 @@ function SedeForm({ sede, onClose }: { sede: Sede | SedeNueva; onClose: () => vo
 
   return (
     <FormPanel title={"id" in sede ? `Editar ${sede.name}` : "Nueva sede"} onClose={onClose} footer={<>
-      {"id" in sede && <BotonBaja label="Eliminar" itemName={sede.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué." className={`${btnSecondary} md:mr-auto text-danger`}
+      {"id" in sede && <BotonBaja itemName={sede.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué."
         accion={() => api.del(`/branches/${sede.id}`, { silent: true, success: `${sede.name} eliminada.` })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="sede-form" disabled={busy || !f.name.trim()} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>

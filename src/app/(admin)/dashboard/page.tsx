@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { Boxes, ChefHat, Plus, ShoppingCart, Store, TrendingUp, Truck, Wallet } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
-import { ApiErrorBanner, Card, CardHead, ListTable, PageHead, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
+import { AlertasSede, ApiErrorBanner, Card, CardHead, ListTable, PageHead, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { BranchTotal as StockSede, DashboardResponse as DashboardVista, ProductionSummary as ProduccionResumen } from "@/lib/api.gen";
-import { ALERTA_SEDE, ENVASE, ESTADO_PRODUCCION, etiqueta } from "@/lib/etiquetas";
+import { ENVASE, ESTADO_PRODUCCION, etiqueta } from "@/lib/etiquetas";
 import { formatDate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
 import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
@@ -21,7 +21,7 @@ const colStock: Columna<StockSede>[] = [
   { key: "libres", header: "LUGARES LIBRES", align: "right", hideBelow: "sm", className: "font-mono", render: (s) => s.freeSlots },
   { key: "alertas", header: "", align: "right", render: (s) => <span className="inline-flex gap-1">
     {/* ponytail: /dashboard manda los códigos en mayúsculas (hallazgo); toLowerCase hasta que la API lo unifique */}
-    {s.alerts.map((a) => <Tag key={a} tone={a.toLowerCase() === "low_stock" ? "danger" : "warning"}>{etiqueta(ALERTA_SEDE, a.toLowerCase())}</Tag>)}
+    <AlertasSede alerts={s.alerts} />
     {!s.alerts.length && <Tag tone="success">OK</Tag>}
   </span> },
 ];

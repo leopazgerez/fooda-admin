@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ApiErrorBanner, Field, FormPanel, btnPrimary, btnSecondary, inputCls } from "@/components/ui";
-import { api, ApiError } from "@/lib/api";
+import { ApiErrorBanner, Field, FormPanel, btnPrimary, btnSecondary, inputCls, campoErr, campoMal } from "@/components/ui";
+import { api } from "@/lib/api";
 import type { SessionResponse } from "@/lib/api.gen";
 import { PERFIL_CAMBIADO, useCurrentUser } from "@/lib/auth";
 import { saveSession } from "@/lib/session";
-
-const marca = (error: unknown, k: string) => (error instanceof ApiError && error.field === k ? "!border-danger ring-2 ring-danger/20" : "");
 
 /** Nombre y contraseña del usuario. Al cambiar la contraseña la API revoca las otras sesiones y devuelve una nueva: se guarda. */
 export default function MiCuentaPanel({ onClose }: { onClose: () => void }) {
@@ -58,7 +56,7 @@ export default function MiCuentaPanel({ onClose }: { onClose: () => void }) {
           <p className="text-[11px] font-bold tracking-[0.275px] text-text-label">NOMBRE</p>
           <ApiErrorBanner error={errNombre} />
           <Field label="NOMBRE Y APELLIDO" hint={user.email}>
-            <input value={nombre} maxLength={80} onChange={(e) => setNombre(e.target.value)} autoComplete="name" className={`${inputCls} ${marca(errNombre, "fullName")}`} />
+            <input value={nombre} maxLength={80} onChange={(e) => setNombre(e.target.value)} autoComplete="name" className={`${inputCls} ${campoMal(errNombre, "fullName")}`} />
           </Field>
           <button type="submit" disabled={busyNombre || !nombre.trim() || nombre.trim() === user.fullName} className={`${btnPrimary} self-end`}>
             {busyNombre ? "Guardando…" : "Guardar nombre"}
@@ -70,15 +68,15 @@ export default function MiCuentaPanel({ onClose }: { onClose: () => void }) {
           <ApiErrorBanner error={errPw} />
           <Field label="CONTRASEÑA ACTUAL">
             <input type="password" value={pw.actual} onChange={(e) => setPw({ ...pw, actual: e.target.value })} autoComplete="current-password"
-              className={`${inputCls} ${marca(errPw, "currentPassword")}`} />
+              className={`${inputCls} ${campoMal(errPw, "currentPassword")}`} />
           </Field>
           <Field label="CONTRASEÑA NUEVA">
             <input type="password" value={pw.nueva} onChange={(e) => setPw({ ...pw, nueva: e.target.value })} autoComplete="new-password"
-              className={`${inputCls} ${marca(errPw, "newPassword")}`} />
+              className={`${inputCls} ${campoMal(errPw, "newPassword")}`} />
           </Field>
           <Field label="REPETIR CONTRASEÑA NUEVA" hint={distintas ? <span className="text-danger">Las contraseñas nuevas no coinciden</span> : undefined}>
             <input type="password" value={pw.repetir} onChange={(e) => setPw({ ...pw, repetir: e.target.value })} autoComplete="new-password"
-              className={`${inputCls} ${distintas ? "!border-danger ring-2 ring-danger/20" : ""}`} />
+              className={`${inputCls} ${distintas ? campoErr : ""}`} />
           </Field>
           <button type="submit" disabled={busyPw || !pw.actual || !pw.nueva || pw.nueva !== pw.repetir} className={`${btnPrimary} self-end`}>
             {busyPw ? "Cambiando…" : "Cambiar contraseña"}

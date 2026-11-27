@@ -5,7 +5,8 @@ import { Box, Copy, FileDown, ListChecks, ShoppingCart, Wallet } from "lucide-re
 import Topbar from "@/components/layout/Topbar";
 import { ApiErrorBanner, BotonBaja, Card, CardHead, ListTable, PageHead, Segmented, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { DetailResponse, PackagingStatus as Envases, PurchaseResponse as CompraVista, ShoppingGroupResponse, Supplier, SupplyResponse } from "@/lib/api.gen";
+import type { DetailResponse, PackagingStatus as Envases, PurchaseResponse as CompraVista, ShoppingGroupResponse, Supplier } from "@/lib/api.gen";
+import type { Insumo } from "@/lib/apiTypes";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
 import { ESTADO_COMPRA, etiqueta } from "@/lib/etiquetas";
 import { feedback } from "@/lib/feedback";
@@ -26,7 +27,7 @@ export default function ComprasPage() {
     () => Promise.all([api.getAll<CompraVista>("/purchases"), api.getOne<Envases>("/packaging")]), []);
   useReloadOnWrite(reload);
   const { options: proveedores } = useOptions<Supplier>("/suppliers");
-  const { options: insumos } = useOptions<SupplyResponse>("/supplies");
+  const { options: insumos } = useOptions<Insumo>("/supplies");
 
   const [compras, envases] = data ?? [[], null];
   const mes = toLocalISODate().slice(0, 7);
@@ -37,8 +38,7 @@ export default function ComprasPage() {
   const { data: listas, reload: recargarListas } = useApiResource(() => cargarPorId(ids, (id) => Promise.all([
     api.getOne<DetailResponse>(`/productions/${id}`, undefined, { quiet: true }),
     api.getOne<ShoppingGroupResponse[]>(`/productions/${id}/shopping-list`, undefined, { quiet: true }),
-  ])), [ids]);
-  useReloadOnWrite(recargarListas);
+  ])), [porComprar.map((c) => `${c.id}:${c.version}`)]); // cambian al registrar/anular: una sola recarga por escritura
   const listaDe = (c: CompraVista): EstadoLista => {
     const cargada = c.productionId === null ? undefined : listas?.get(c.productionId);
     if (cargada === undefined) return "cargando";
@@ -61,7 +61,7 @@ export default function ComprasPage() {
       <span className="inline-flex flex-col items-center gap-0.5">
         <Tag tone="solid">{etiqueta(ESTADO_COMPRA, c.status)}</Tag>
         {c.date && <span className="text-[10px] text-text-muted font-mono">{formatDate(c.date)}</span>}
-        <BotonBaja label="Anular" title="¿Anular esta compra?" confirmLabel="Anular compra" className={`${btnSecondary} py-0.5 px-2 text-[11px] text-danger`}
+        <BotonBaja label="Anular" title="¿Anular esta compra?" confirmLabel="Anular compra" fila
           description={c.productionId === null ? "Se borra la compra y su gasto." : "Se borra su gasto y la lista vuelve a Por comprar."}
           accion={() => api.del(`/purchases/${c.id}`, { success: "Compra anulada." })} />
       </span>

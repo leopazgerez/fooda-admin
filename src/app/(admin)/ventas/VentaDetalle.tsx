@@ -18,14 +18,13 @@ function Dato({ label, children }: { label: string; children: React.ReactNode })
 }
 
 /** Venta en solo lectura, con la opción de anularla (los packs vuelven al stock). */
-export default function VentaDetalle({ venta, onClose }: { venta: VentaVista; onClose: () => void }) {
+export default function VentaDetalle({ venta: v, onClose }: { venta: VentaVista; onClose: () => void }) {
   const [error, setError] = useState<unknown>(null);
-  const v = venta;
   return (
     <FormPanel title={`Venta del ${formatDate(v.date)}`} onClose={onClose} footer={<>
       <BotonBaja label="Anular venta" title="¿Anular esta venta?" confirmLabel="Anular venta"
         description="Los packs vuelven al stock y la venta deja de contar en ventas y ganancia."
-        className={`${btnSecondary} md:mr-auto text-danger`} onHecho={onClose} onError={setError}
+        onHecho={onClose} onError={setError}
         accion={() => api.del(`/sales/${v.id}`, { silent: true, success: "Venta anulada." })} />
       <button type="button" onClick={onClose} className={btnSecondary}>Cerrar</button>
     </>}>

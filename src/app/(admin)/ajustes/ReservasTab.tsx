@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, type Columna } from "@/components/ui";
-import { api, ApiError } from "@/lib/api";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, type Columna, campoMal } from "@/components/ui";
+import { api } from "@/lib/api";
 import type { ReserveFund as Reserva } from "@/lib/api.gen";
-import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
+import { useApiResource, useReloadOnWrite, vigente } from "@/lib/useApi";
 import { AnimatePresence } from "motion/react";
 
 /** Reparto de la ganancia del mes en reservas (%). */
@@ -14,8 +14,7 @@ export default function ReservasTab() {
   const { data, error, reload } = useApiResource(() => api.getAll<Reserva>("/reserve-funds"), []);
   useReloadOnWrite(reload);
   const reservas = data ?? [];
-  // el panel recibe el registro recargado (version al día), no la copia del click
-  const abierta = edit && edit !== "nueva" ? reservas.find((r) => r.id === edit.id) ?? edit : edit;
+  const abierta = vigente(reservas, edit);
   const suma = reservas.reduce((a, r) => a + r.percentage, 0);
   const columnas: Columna<Reserva>[] = [
     { key: "nombre", header: "RESERVA", className: "font-semibold text-brand-dark", render: (r) => r.name },
@@ -39,7 +38,7 @@ function ReservaForm({ reserva, onClose }: { reserva: Reserva | null; onClose: (
   const [porcentaje, setPorcentaje] = useState(reserva?.percentage ?? 0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const bad = (k: string) => (error instanceof ApiError && error.field === k ? "!border-danger ring-2 ring-danger/20" : "");
+  const bad = (k: string) => campoMal(error, k);
   const correr = async (fn: () => Promise<unknown>) => {
     setError(null);
     setBusy(true);
@@ -62,7 +61,7 @@ function ReservaForm({ reserva, onClose }: { reserva: Reserva | null; onClose: (
   };
   return (
     <FormPanel title={reserva ? `Editar ${reserva.name}` : "Nueva reserva"} onClose={onClose} footer={<>
-      {reserva && <BotonBaja label="Eliminar" itemName={reserva.name} className={`${btnSecondary} md:mr-auto text-danger`}
+      {reserva && <BotonBaja itemName={reserva.name}
         accion={() => api.del(`/reserve-funds/${reserva.id}`, { silent: true, success: "Reserva eliminada." })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="reserva-form" disabled={busy || !nombre.trim()} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>

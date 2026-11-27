@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, type Columna } from "@/components/ui";
-import { api, ApiError } from "@/lib/api";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, type Columna, campoMal } from "@/components/ui";
+import { api } from "@/lib/api";
 import type { Supplier as Proveedor } from "@/lib/api.gen";
-import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
+import { useApiResource, useReloadOnWrite, vigente } from "@/lib/useApi";
 import { AnimatePresence } from "motion/react";
 
 const columnas: Columna<Proveedor>[] = [
@@ -20,8 +20,7 @@ export default function ProveedoresTab() {
   const { data, error, reload } = useApiResource(() => api.getAll<Proveedor>("/suppliers"), []);
   useReloadOnWrite(reload);
   const proveedores = data ?? [];
-  // el panel recibe el registro recargado (version al día), no la copia del click
-  const abierto = edit && edit !== "nuevo" ? proveedores.find((p) => p.id === edit.id) ?? edit : edit;
+  const abierto = vigente(proveedores, edit);
   return (
     <div className="flex flex-col gap-3">
       <ApiErrorBanner error={error} />
@@ -39,7 +38,7 @@ function ProveedorForm({ proveedor, siguiente, onClose }: { proveedor: Proveedor
   const [f, setF] = useState({ nombre: proveedor?.name ?? "", diaCompra: proveedor?.purchaseDay ?? "", orden: proveedor?.sortOrder ?? siguiente });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const bad = (k: string) => (error instanceof ApiError && error.field === k ? "!border-danger ring-2 ring-danger/20" : "");
+  const bad = (k: string) => campoMal(error, k);
   const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy) return;
@@ -61,7 +60,7 @@ function ProveedorForm({ proveedor, siguiente, onClose }: { proveedor: Proveedor
   };
   return (
     <FormPanel title={proveedor ? `Editar ${proveedor.name}` : "Nuevo proveedor"} onClose={onClose} footer={<>
-      {proveedor && <BotonBaja label="Eliminar" itemName={proveedor.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué." className={`${btnSecondary} md:mr-auto text-danger`}
+      {proveedor && <BotonBaja itemName={proveedor.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué."
         accion={() => api.del(`/suppliers/${proveedor.id}`, { silent: true, success: `${proveedor.name} eliminado.` })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="proveedor-form" disabled={busy || !f.nombre.trim()} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>

@@ -11,10 +11,10 @@ import { feedback } from "@/lib/feedback";
 import { money } from "@/lib/format";
 import ClientePicker from "./ClientePicker";
 
-export const TIPOS = opciones(TIPO_VENTA);
 /** Medios con los que entra plata ("packs" es solo para gastos pagados con packs). */
 export const MEDIOS = opciones(MEDIO_PAGO).filter((m) => m.value !== "packs");
-const TIPOS_VENTA = TIPOS.slice(0, 3); // retail, wholesale, consignment
+// los otros tipos (uso interno, pago con packs) van por "Pagar con packs"
+const TIPOS_VENTA = opciones(TIPO_VENTA).filter((t) => ["retail", "wholesale", "consignment"].includes(t.value));
 export const entero = (v: string) => Math.max(0, Math.floor(Number(v) || 0));
 export const clave = (f: Pick<FilaStock, "productionId" | "packId">) => `${f.productionId}|${f.packId}`;
 

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Pencil } from "lucide-react";
-import { ApiErrorBanner, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
-import { api, ApiError } from "@/lib/api";
+import { ApiErrorBanner, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, selectCls, type Columna, campoMal } from "@/components/ui";
+import { api } from "@/lib/api";
 import type { SettingsResponse as Parametros, SupplyResponse } from "@/lib/api.gen";
 import { money } from "@/lib/format";
 import { useApiResource, useOptions, useReloadOnWrite } from "@/lib/useApi";
@@ -52,7 +52,7 @@ function ParametrosForm({ actual, insumos, onClose }: { actual: Parametros; insu
   const [f, setF] = useState(actual);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const bad = (k: string) => (error instanceof ApiError && error.field === k ? "!border-danger ring-2 ring-danger/20" : "");
+  const bad = (k: string) => campoMal(error, k);
   const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy) return;

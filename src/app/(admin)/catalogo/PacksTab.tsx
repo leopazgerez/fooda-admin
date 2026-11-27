@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, selectCls, type Columna, campoMal } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { DishResponse as PlatoVista, PackResponse as PackVista, VersionResponse as PackVersion } from "@/lib/api.gen";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
-import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
+import { useApiResource, useReloadOnWrite, vigente } from "@/lib/useApi";
 import { AnimatePresence } from "motion/react";
 
 const columnas: Columna<PackVista>[] = [
@@ -28,8 +28,8 @@ export default function PacksTab() {
   const { data, error, reload } = useApiResource(() => Promise.all([api.getOne<PackVista[]>("/packs"), api.getAll<PlatoVista>("/dishes", { sort: "name" })]), []);
   useReloadOnWrite(reload);
   const [packs, platos] = data ?? [[], []];
-  // tras crear un pack nuevo, abrirlo para cargar su composición
-  const abierto = edit && edit !== "nuevo" ? packs.find((p) => p.id === edit.id) ?? edit : edit;
+  // registro recargado (version al día); tras crear un pack nuevo, se abre para cargar su composición
+  const abierto = vigente(packs, edit);
   return (
     <div className="flex flex-col gap-3">
       <ApiErrorBanner error={error} />
@@ -47,7 +47,7 @@ function PackPanel({ pack, platos, onClose, onCreado }: { pack: PackVista | null
   const [f, setF] = useState({ nombre: pack?.name ?? "", precio: pack?.salePrice ?? 0, activo: pack?.active ?? true });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const bad = (k: string) => (error instanceof ApiError && error.field === k ? "!border-danger ring-2 ring-danger/20" : "");
+  const bad = (k: string) => campoMal(error, k);
 
   const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
@@ -73,7 +73,7 @@ function PackPanel({ pack, platos, onClose, onCreado }: { pack: PackVista | null
 
   return (
     <FormPanel title={pack ? pack.name : "Nuevo pack"} size="lg" onClose={onClose} footer={<>
-      {pack && <BotonBaja label="Eliminar" itemName={pack.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué." className={`${btnSecondary} md:mr-auto text-danger`}
+      {pack && <BotonBaja itemName={pack.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué."
         accion={() => api.del(`/packs/${pack.id}`, { silent: true, success: `${pack.name} eliminado.` })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cerrar</button>
       <button type="submit" form="pack-form" disabled={busy || !f.nombre.trim()} className={btnPrimary}>{busy ? "Guardando…" : pack ? "Guardar" : "Crear pack"}</button>

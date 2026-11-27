@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ApiErrorBanner, Field, FormPanel, btnPrimary, btnSecondary, inputCls, selectCls } from "@/components/ui";
-import { api, ApiError } from "@/lib/api";
+import { ApiErrorBanner, Field, FormPanel, btnPrimary, btnSecondary, inputCls, selectCls, campoMal } from "@/components/ui";
+import { api } from "@/lib/api";
 import type { BranchResponse as SedeOpcion, SaleResponse as VentaVista, SettingsResponse as Parametros, StockRow as FilaStock } from "@/lib/api.gen";
 import { toLocalISODate } from "@/lib/dateUtils";
 import { feedback } from "@/lib/feedback";
@@ -27,7 +27,7 @@ export default function PagoPacksPanel({ sedes, filas, parametros, onClose }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const trueque = motivo === "paid_with_packs";
-  const mal = error instanceof ApiError && error.field === "notes" ? "!border-danger ring-2 ring-danger/20" : "";
+  const mal = campoMal(error, "notes");
 
   const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();

@@ -7,28 +7,9 @@ import type { BranchResponse as SedeOpcion, DetailResponse, PackResponse as Pack
 import { toLocalISODate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
 import { insumosSobrantes, mapaSobrantes } from "@/lib/sobrantes";
-import { useApiResource, useOptions } from "@/lib/useApi";
+import { useApiResource, useGuardar, useOptions } from "@/lib/useApi";
 
 const num = `${inputCls} font-mono w-24 text-right`;
-
-function useGuardar(onClose: () => void) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  const run = async (fn: () => Promise<unknown>) => {
-    if (busy) return;
-    setError(null);
-    setBusy(true);
-    try {
-      await fn();
-      onClose();
-    } catch (err) {
-      setError(err);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return { busy, error, run };
-}
 
 /** Planificar: solo cantidades por pack. El costo lo calcula el sistema con recetas y precios vigentes y queda congelado. */
 export function NuevaProduccionPanel({ packs, onClose }: { packs: PackVista[]; onClose: () => void }) {

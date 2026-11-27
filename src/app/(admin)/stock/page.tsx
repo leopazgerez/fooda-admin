@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { Send, SlidersHorizontal } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
-import { ApiErrorBanner, BotonBaja, Card, CardHead, ListTable, PageHead, Segmented, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
+import { AlertasSede, ApiErrorBanner, BotonBaja, Card, CardHead, ListTable, PageHead, Segmented, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { BranchResponse, PackResponse as PackVista, StockResponse as StockVista, StockRow as FilaStock, TransferResponse as TrasladoVista } from "@/lib/api.gen";
 import { formatDate } from "@/lib/dateUtils";
-import { ALERTA_SEDE, etiqueta } from "@/lib/etiquetas";
 import { useApiResource, useOptions, useReloadOnWrite } from "@/lib/useApi";
 import { AjustePanel, DespachoPanel } from "./StockPanels";
 import { AnimatePresence } from "motion/react";
@@ -35,7 +34,7 @@ const colTraslados: Columna<TrasladoVista>[] = [
   // los de reparto (cierre de producción) la API no los anula: se deshacen reabriendo la producción
   { key: "anular", header: "", align: "right", render: (t) => t.sourceProductionId !== null
     ? <span title="Se deshace reabriendo la producción"><Tag>Reparto</Tag></span> : <BotonBaja label="Anular" title="¿Anular este traslado?" confirmLabel="Anular traslado"
-    description="Los packs vuelven a la sede de origen." className={`${btnSecondary} py-0.5 px-2 text-[11px] text-danger`}
+    description="Los packs vuelven a la sede de origen." fila
     accion={() => api.del(`/transfers/${t.id}`, { success: "Traslado anulado." })} /> },
 ];
 
@@ -69,7 +68,7 @@ export default function StockPage() {
           {stock.byBranch.map((s) => (
             <Stat key={s.branchId} label={`STOCK ${s.branch.toUpperCase()}`} value={String(s.total)} unit="packs"
               tag={s.alerts.length ? <span className="flex gap-1">
-                {s.alerts.map((a) => <Tag key={a} tone={a.toLowerCase() === "low_stock" ? "danger" : "warning"}>{etiqueta(ALERTA_SEDE, a.toLowerCase())}</Tag>)}
+                <AlertasSede alerts={s.alerts} />
               </span> : undefined}
               foot={<span className="font-mono">capacidad {s.capacity} · {s.freeSlots} lugares libres</span>} />
           ))}

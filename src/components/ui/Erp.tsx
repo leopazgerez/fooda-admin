@@ -1,6 +1,7 @@
 // Piezas de las pantallas de Fooda: tarjetas, indicadores, etiquetas y campos de formulario.
 
 import React from "react";
+import { ApiError } from "@/lib/api";
 
 export const inputCls =
   "w-full bg-surface border border-border-strong rounded-xs px-2.5 py-1.5 text-xs text-brand-dark outline-none focus:border-accent placeholder:text-text-muted";
@@ -104,6 +105,10 @@ export function Segmented<T extends string>({ options, value, onChange }: {
     </div>
   );
 }
+
+/** Campo marcado en rojo: el que la API señaló en `error.field`. */
+export const campoErr = "!border-danger ring-2 ring-danger/20";
+export const campoMal = (error: unknown, campo: string) => (error instanceof ApiError && error.field === campo ? campoErr : "");
 
 export function Field({ label, hint, children }: { label: string; hint?: React.ReactNode; children: React.ReactNode }) {
   return (

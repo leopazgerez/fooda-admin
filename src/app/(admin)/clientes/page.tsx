@@ -9,7 +9,7 @@ import type { CustomerResponse as ClienteVista, FollowUpsResponse as Recontactos
 import { buscarClientes } from "@/lib/buscar";
 import { formatDate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
-import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
+import { useApiResource, useReloadOnWrite, vigente } from "@/lib/useApi";
 import { ClienteDetalle, ClienteForm, cumple } from "./ClientePanels";
 import { AnimatePresence } from "motion/react";
 
@@ -25,10 +25,8 @@ export default function ClientesPage() {
   ]), []);
   useReloadOnWrite(reload);
   const [clientes, avisos] = data ?? [[], { followUps: [], birthdays: [] }];
-  // el panel recibe el registro recargado (version al día), no la copia del click
-  const fresco = (c: ClienteVista) => clientes.find((x) => x.id === c.id) ?? c;
-  const enFicha = detalle && fresco(detalle);
-  const enForm = form && form !== "nuevo" ? fresco(form) : form;
+  const enFicha = vigente(clientes, detalle);
+  const enForm = vigente(clientes, form);
   const dias = new Map(avisos.followUps.map((r) => [r.customer.id, r.daysWithoutPurchase]));
 
   const base = filtro === "PARA RECONTACTAR" ? clientes.filter((c) => dias.has(c.id))

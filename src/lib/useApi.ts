@@ -42,3 +42,32 @@ export function useReloadOnWrite(reload: () => void) {
     return () => window.removeEventListener(API_WRITE_EVENT, reload);
   }, [reload]);
 }
+
+/** Guardar de un panel: busy, error y una ejecución a la vez. Si se pasa `onClose`, cierra al terminar bien. */
+export function useGuardar(onClose?: () => void) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const run = async (fn: () => Promise<unknown>) => {
+    if (busy) return;
+    setError(null);
+    setBusy(true);
+    try {
+      await fn();
+      onClose?.();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return { busy, error, setError, run };
+}
+
+/**
+ * El registro abierto, tomado de la lista recargada (con la `version` al día) y no la copia del click.
+ * "nuevo", null o un objeto sin id (alta) pasan tal cual.
+ */
+export function vigente<T extends { id: number }, O>(lista: T[], abierto: T | O): T | O {
+  if (!abierto || typeof abierto !== "object" || !("id" in abierto)) return abierto;
+  return lista.find((x) => x.id === (abierto as T).id) ?? abierto;
+}

@@ -14,10 +14,10 @@ export const MEDIO_PAGO: Record<string, string> = {
 };
 export const ALERTA_SEDE: Record<string, string> = { low_stock: "Stock bajo", free_slots: "Hay lugar para un viaje" };
 
-/** El texto del mapa; el código tal cual si el mapa no lo tiene; "—" si no hay valor. */
+/** El texto del mapa; el código tal cual si el mapa no lo tiene; "—" si no hay valor. Sin distinguir mayúsculas: /dashboard manda los códigos en mayúsculas (hallazgo). */
 export function etiqueta(mapa: Record<string, string>, valor: string | null | undefined): string {
   if (!valor) return "—";
-  return mapa[valor] ?? valor;
+  return mapa[valor.toLowerCase()] ?? valor;
 }
 
 /** Opciones de un <select> en el orden del mapa. */

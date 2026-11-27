@@ -9,7 +9,7 @@ import type { ExpenseResponse as Gasto, MonthlyResponse as MesFinanzas, Settings
 import { MEDIO_PAGO, etiqueta } from "@/lib/etiquetas";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
-import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
+import { useApiResource, useReloadOnWrite, vigente } from "@/lib/useApi";
 import GastoPanel from "./GastoPanel";
 import { AnimatePresence } from "motion/react";
 
@@ -28,8 +28,7 @@ export default function FinanzasPage() {
   ]), []);
   useReloadOnWrite(reload);
   const [meses, gastos, parametros] = data ?? [[], [], null];
-  // el panel recibe el registro recargado (version al día), no la copia del click
-  const abierto = panel && panel !== "nuevo" ? gastos.find((g) => g.id === panel.id) ?? panel : panel;
+  const abierto = vigente(gastos, panel);
   const hoy = toLocalISODate().slice(0, 7);
   const actual = meses.find((m) => m.month === hoy);
 
@@ -53,7 +52,7 @@ export default function FinanzasPage() {
       <Tag tone="solid">Cerrado</Tag>
       <BotonBaja label="Reabrir" tone="neutral" title={`¿Reabrir ${nombreMes(m.month)}?`} confirmLabel="Reabrir mes"
         description="Se borra la foto del cierre y el mes vuelve a calcularse en vivo; se puede volver a cerrar."
-        className={`${btnSecondary} py-0.5 px-2 text-[11px]`} accion={() => api.del(`/finance/month-closes/${m.month}`, { success: "Mes reabierto." })} />
+        fila accion={() => api.del(`/finance/month-closes/${m.month}`, { success: "Mes reabierto." })} />
     </span> : m.month < hoy
       ? <button type="button" onClick={() => setCerrar(m.month)} className={`${btnSecondary} py-1 text-[11px]`}>Cerrar mes</button> : <Tag>En curso</Tag> },
   ];

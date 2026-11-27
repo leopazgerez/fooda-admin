@@ -2,16 +2,15 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, selectCls, type Columna, campoErr } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
-import type { PriceResponse as PrecioInsumo, Supplier as Proveedor, SupplyResponse as InsumoVista } from "@/lib/api.gen";
+import type { PriceResponse as PrecioInsumo, Supplier as Proveedor } from "@/lib/api.gen";
+import type { Insumo as InsumoVista } from "@/lib/apiTypes";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
 import { REGLA_COMPUESTO, UNIDAD, etiqueta, opciones } from "@/lib/etiquetas";
 import { money } from "@/lib/format";
 import { useApiResource } from "@/lib/useApi";
 
-const badField = "!border-danger ring-2 ring-danger/20";
-type UnidadInsumo = "g" | "ml" | "u";
 
 /** Alta o edición de insumo. El precio se carga como un precio nuevo con fecha (el historial se conserva). */
 export default function InsumoPanel({ insumo, proveedores, onClose }: { insumo: InsumoVista | null; proveedores: Proveedor[]; onClose: () => void }) {
@@ -22,7 +21,7 @@ export default function InsumoPanel({ insumo, proveedores, onClose }: { insumo: 
   const [precioInicial, setPrecioInicial] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const bad = (k: string) => (error instanceof ApiError && error.field === k ? badField : "");
+  const bad = (k: string) => (error instanceof ApiError && error.field === k ? campoErr : "");
   const compuesto = !!insumo?.composite;
 
   const guardar = async (e: React.SubmitEvent) => {
@@ -48,7 +47,7 @@ export default function InsumoPanel({ insumo, proveedores, onClose }: { insumo: 
 
   return (
     <FormPanel title={insumo ? insumo.name : "Nuevo insumo"} onClose={onClose} footer={<>
-      {insumo && <BotonBaja label="Eliminar" itemName={insumo.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué." className={`${btnSecondary} md:mr-auto text-danger`}
+      {insumo && <BotonBaja itemName={insumo.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué."
         accion={() => api.del(`/supplies/${insumo.id}`, { silent: true, success: `${insumo.name} eliminado.` })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="insumo-form" disabled={busy || !f.name.trim()} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>
@@ -66,7 +65,7 @@ export default function InsumoPanel({ insumo, proveedores, onClose }: { insumo: 
             </select>
           </Field>
           <Field label="UNIDAD">
-            <select value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value as UnidadInsumo })} className={`${selectCls} ${bad("unit")}`}>
+            <select value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })} className={`${selectCls} ${bad("unit")}`}>
               {opciones(UNIDAD).map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
             </select>
           </Field>
@@ -102,8 +101,8 @@ function Precios({ insumo }: { insumo: InsumoVista }) {
   const colPrecios: Columna<PrecioInsumo>[] = [
     { key: "fecha", header: "DESDE", className: "font-mono text-text-secondary", render: (p) => formatDate(p.date) },
     { key: "precio", header: "PRECIO DEL ENVASE", align: "right", className: "font-mono", render: (p) => money(p.packagePrice) },
-    { key: "borrar", header: "", align: "right", render: (p) => <BotonBaja label="Eliminar" itemName={`el precio del ${formatDate(p.date)}`}
-      className={`${btnSecondary} py-0.5 px-2 text-[11px] text-danger`} onHecho={() => setTick((t) => t + 1)}
+    { key: "borrar", header: "", align: "right", render: (p) => <BotonBaja itemName={`el precio del ${formatDate(p.date)}`}
+      fila onHecho={() => setTick((t) => t + 1)}
       onError={(e) => setError(e instanceof ApiError ? e.message : "No se pudo eliminar el precio")}
       accion={() => api.del(`/supplies/${insumo.id}/prices/${p.id}`, { silent: true, success: "Precio eliminado." })} /> },
   ];

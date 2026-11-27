@@ -3,28 +3,10 @@
 import { useState } from "react";
 import { ApiErrorBanner, BotonBaja, Field, FormPanel, btnPrimary, btnSecondary, inputCls, selectCls } from "@/components/ui";
 import { api } from "@/lib/api";
+import { useGuardar } from "@/lib/useApi";
 import type { AdjustmentResponse, BranchResponse as SedeOpcion, PackResponse as PackVista, StockRow as FilaStock } from "@/lib/api.gen";
 import { toLocalISODate } from "@/lib/dateUtils";
 import { LineasStock, lineasBody, type LineaElegida } from "../ventas/VentaPanel";
-
-function useGuardar(onClose: () => void) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  const run = async (fn: () => Promise<unknown>) => {
-    if (busy) return;
-    setError(null);
-    setBusy(true);
-    try {
-      await fn();
-      onClose();
-    } catch (err) {
-      setError(err);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return { busy, error, run };
-}
 
 const Botones = ({ busy, onClose, texto, form }: { busy: boolean; onClose: () => void; texto: string; form: string }) => (<>
   <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
@@ -89,14 +71,13 @@ export function AjustePanel({ sedes, packs, filas, onClose }: { sedes: SedeOpcio
   const [fecha, setFecha] = useState(toLocalISODate());
   // guardado: el panel queda abierto con "Deshacer" (la API no lista ajustes: es la única chance de anularlo)
   const [hecho, setHecho] = useState<AdjustmentResponse | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  const { busy, error, setError, run } = useGuardar();
   const lotes = filas.filter((f) => f.branchId === sedeId && f.packId === packId);
 
   if (hecho) return (
     <FormPanel title="Ajustar stock" onClose={onClose} footer={<>
       <BotonBaja label="Deshacer" tone="neutral" title="¿Deshacer el ajuste?" confirmLabel="Deshacer"
-        description="El stock vuelve a como estaba antes del ajuste." className={`${btnSecondary} md:mr-auto`}
+        description="El stock vuelve a como estaba antes del ajuste."
         accion={() => api.del(`/stock-adjustments/${hecho.id}`, { silent: true, success: "Ajuste deshecho." })} onHecho={onClose} onError={setError} />
       <button type="button" onClick={onClose} className={btnPrimary}>Listo</button>
     </>}>
@@ -113,19 +94,11 @@ export function AjustePanel({ sedes, packs, filas, onClose }: { sedes: SedeOpcio
   return (
     <FormPanel title="Ajustar stock" onClose={onClose}
       footer={<Botones busy={busy} onClose={onClose} texto="Guardar ajuste" form="ajuste-form" />}>
-      <form id="ajuste-form" noValidate className="flex flex-col gap-4" onSubmit={async (e) => {
+      <form id="ajuste-form" noValidate className="flex flex-col gap-4" onSubmit={(e) => {
         e.preventDefault();
-        if (busy) return;
-        setError(null);
-        setBusy(true);
-        try {
-          setHecho(await api.post<AdjustmentResponse>("/stock-adjustments", { branchId: sedeId, packId, quantity: cantidad, reason: motivo, date: fecha, ...(produccionId ? { productionId: produccionId } : {}) },
-            { silent: true, success: "Stock ajustado." }));
-        } catch (err) {
-          setError(err);
-        } finally {
-          setBusy(false);
-        }
+        run(async () => setHecho(await api.post<AdjustmentResponse>("/stock-adjustments",
+          { branchId: sedeId, packId, quantity: cantidad, reason: motivo, date: fecha, ...(produccionId ? { productionId: produccionId } : {}) },
+          { silent: true, success: "Stock ajustado." })));
       }}>
         <ApiErrorBanner error={error} />
         <div className="grid grid-cols-2 gap-3">

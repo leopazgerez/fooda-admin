@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Pencil } from "lucide-react";
-import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, selectCls, type Columna, campoErr } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { CustomerResponse as ClienteVista, SaleResponse as VentaVista } from "@/lib/api.gen";
 import { formatDate } from "@/lib/dateUtils";
@@ -15,14 +15,13 @@ export const cumple = (mmdd?: string | null) => (mmdd ? `${mmdd.slice(3)}/${mmdd
 
 const CAMPOS = ["firstName", "lastName", "phone", "address", "birthday", "notes"] as const;
 type Campo = (typeof CAMPOS)[number];
-const badField = "!border-danger ring-2 ring-danger/20";
 
 /** Alta (cliente null) o edición: PATCH solo con lo cambiado; un campo vaciado va como null. */
 export function ClienteForm({ cliente, onClose, onSaved }: { cliente: ClienteVista | null; onClose: () => void; onSaved?: (c: ClienteVista) => void }) {
   const [f, setF] = useState<Record<Campo, string>>(Object.fromEntries(CAMPOS.map((k) => [k, cliente?.[k] ?? ""])) as Record<Campo, string>);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const bad = (k: Campo) => (error instanceof ApiError && error.field === k ? badField : "");
+  const bad = (k: Campo) => (error instanceof ApiError && error.field === k ? campoErr : "");
   const [mes, dia] = f.birthday ? f.birthday.split("-") : ["", ""];
   const diasMes = mes ? new Date(2000, Number(mes), 0).getDate() : 31; // 2000: bisiesto, acepta 29/02
   const setCumple = (m: string, d: string) => {
@@ -60,7 +59,7 @@ export function ClienteForm({ cliente, onClose, onSaved }: { cliente: ClienteVis
 
   return (
     <FormPanel title={cliente ? `Editar ${cliente.fullName}` : "Nuevo cliente"} onClose={onClose} footer={<>
-      {cliente && <BotonBaja label="Eliminar" itemName={cliente.fullName} description="Si está en uso, la API no lo deja eliminar y te dice por qué." className={`${btnSecondary} md:mr-auto text-danger`}
+      {cliente && <BotonBaja itemName={cliente.fullName} description="Si está en uso, la API no lo deja eliminar y te dice por qué."
         accion={() => api.del(`/customers/${cliente.id}`, { silent: true, success: `${cliente.fullName} eliminado.` })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="cliente-form" disabled={busy || !f.firstName.trim() || !f.lastName.trim()} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>
