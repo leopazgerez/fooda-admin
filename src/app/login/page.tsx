@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, ArrowRight } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { app } from "@/config/app";
 import { getAssetPath } from "@/lib/assets";
 import { ApiError } from "@/lib/api";
@@ -14,6 +14,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [verPassword, setVerPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
@@ -131,13 +132,20 @@ export default function LoginPage() {
               <div className="flex items-center gap-2 bg-surface-alt border border-border-subtle rounded-xl px-3.5 py-2.5 transition-all focus-within:border-accent focus-within:bg-surface">
                 <Lock className="w-4 h-4 text-text-muted shrink-0" />
                 <input
-                  type="password"
+                  type={verPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   className="bg-transparent border-none outline-none w-full text-xs text-text-primary"
                 />
+                <button type="button" onClick={() => setVerPassword((v) => !v)}
+                  aria-label={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"} aria-pressed={verPassword}
+                  title={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  className="text-text-muted hover:text-text-primary shrink-0 cursor-pointer">
+                  {verPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 

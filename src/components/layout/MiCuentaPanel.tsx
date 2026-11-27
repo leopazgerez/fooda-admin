@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ApiErrorBanner, Field, FormPanel, btnPrimary, btnSecondary, inputCls, campoErr, campoMal } from "@/components/ui";
+import { ApiErrorBanner, CampoPassword, Field, FormPanel, btnPrimary, btnSecondary, inputCls, campoErr, campoMal } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { SessionResponse } from "@/lib/api.gen";
 import { PERFIL_CAMBIADO, useCurrentUser } from "@/lib/auth";
@@ -67,16 +67,16 @@ export default function MiCuentaPanel({ onClose }: { onClose: () => void }) {
           <p className="text-[11px] font-bold tracking-[0.275px] text-text-label">CONTRASEÑA</p>
           <ApiErrorBanner error={errPw} />
           <Field label="CONTRASEÑA ACTUAL">
-            <input type="password" value={pw.actual} onChange={(e) => setPw({ ...pw, actual: e.target.value })} autoComplete="current-password"
-              className={`${inputCls} ${campoMal(errPw, "currentPassword")}`} />
+            <CampoPassword value={pw.actual} onChange={(e) => setPw({ ...pw, actual: e.target.value })} autoComplete="current-password"
+              className={campoMal(errPw, "currentPassword")} />
           </Field>
           <Field label="CONTRASEÑA NUEVA">
-            <input type="password" value={pw.nueva} onChange={(e) => setPw({ ...pw, nueva: e.target.value })} autoComplete="new-password"
-              className={`${inputCls} ${campoMal(errPw, "newPassword")}`} />
+            <CampoPassword value={pw.nueva} onChange={(e) => setPw({ ...pw, nueva: e.target.value })} autoComplete="new-password"
+              className={campoMal(errPw, "newPassword")} />
           </Field>
           <Field label="REPETIR CONTRASEÑA NUEVA" hint={distintas ? <span className="text-danger">Las contraseñas nuevas no coinciden</span> : undefined}>
-            <input type="password" value={pw.repetir} onChange={(e) => setPw({ ...pw, repetir: e.target.value })} autoComplete="new-password"
-              className={`${inputCls} ${distintas ? campoErr : ""}`} />
+            <CampoPassword value={pw.repetir} onChange={(e) => setPw({ ...pw, repetir: e.target.value })} autoComplete="new-password"
+              className={distintas ? campoErr : ""} />
           </Field>
           <button type="submit" disabled={busyPw || !pw.actual || !pw.nueva || pw.nueva !== pw.repetir} className={`${btnPrimary} self-end`}>
             {busyPw ? "Cambiando…" : "Cambiar contraseña"}
