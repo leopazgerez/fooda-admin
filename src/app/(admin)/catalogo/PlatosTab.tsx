@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { ApiErrorBanner, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { DishResponse as PlatoVista, PackResponse as PackVista, RecipeLineResponse as LineaReceta, SupplyResponse as InsumoVista } from "@/lib/api.gen";
 import { normalizar } from "@/lib/buscar";
@@ -72,6 +72,8 @@ function PlatoPanel({ plato, insumos, onClose }: { plato: PlatoVista | null; ins
 
   return (
     <FormPanel title={plato ? plato.name : "Nuevo plato"} size="lg" onClose={onClose} footer={<>
+      {plato && <BotonBaja label="Eliminar" itemName={plato.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué." className={`${btnSecondary} md:mr-auto text-danger`}
+        accion={() => api.del(`/dishes/${plato.id}`, { silent: true, success: `${plato.name} eliminado.` })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="plato-form" disabled={busy || !nombre.trim() || !receta.length} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>
     </>}>

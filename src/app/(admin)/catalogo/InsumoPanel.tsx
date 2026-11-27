@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ApiErrorBanner, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { PriceResponse as PrecioInsumo, Supplier as Proveedor, SupplyResponse as InsumoVista } from "@/lib/api.gen";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
@@ -48,6 +48,8 @@ export default function InsumoPanel({ insumo, proveedores, onClose }: { insumo: 
 
   return (
     <FormPanel title={insumo ? insumo.name : "Nuevo insumo"} onClose={onClose} footer={<>
+      {insumo && <BotonBaja label="Eliminar" itemName={insumo.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué." className={`${btnSecondary} md:mr-auto text-danger`}
+        accion={() => api.del(`/supplies/${insumo.id}`, { silent: true, success: `${insumo.name} eliminado.` })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="insumo-form" disabled={busy || !f.name.trim()} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>
     </>}>
@@ -92,16 +94,19 @@ export default function InsumoPanel({ insumo, proveedores, onClose }: { insumo: 
   );
 }
 
-const colPrecios: Columna<PrecioInsumo>[] = [
-  { key: "fecha", header: "DESDE", className: "font-mono text-text-secondary", render: (p) => formatDate(p.date) },
-  { key: "precio", header: "PRECIO DEL ENVASE", align: "right", className: "font-mono", render: (p) => money(p.packagePrice) },
-];
-
 function Precios({ insumo }: { insumo: InsumoVista }) {
   const [tick, setTick] = useState(0);
   const { data } = useApiResource(() => api.getOne<PrecioInsumo[]>(`/supplies/${insumo.id}/prices`), [insumo.id, tick]);
   const [nuevo, setNuevo] = useState({ fecha: toLocalISODate(), precio: insumo.packagePrice ?? 0 }); // null: todavía sin precio
   const [error, setError] = useState<string | null>(null);
+  const colPrecios: Columna<PrecioInsumo>[] = [
+    { key: "fecha", header: "DESDE", className: "font-mono text-text-secondary", render: (p) => formatDate(p.date) },
+    { key: "precio", header: "PRECIO DEL ENVASE", align: "right", className: "font-mono", render: (p) => money(p.packagePrice) },
+    { key: "borrar", header: "", align: "right", render: (p) => <BotonBaja label="Eliminar" itemName={`el precio del ${formatDate(p.date)}`}
+      className={`${btnSecondary} py-0.5 px-2 text-[11px] text-danger`} onHecho={() => setTick((t) => t + 1)}
+      onError={(e) => setError(e instanceof ApiError ? e.message : "No se pudo eliminar el precio")}
+      accion={() => api.del(`/supplies/${insumo.id}/prices/${p.id}`, { silent: true, success: "Precio eliminado." })} /> },
+  ];
   const agregar = async () => {
     setError(null);
     try {

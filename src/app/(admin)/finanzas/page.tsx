@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { HandCoins, Plus, TrendingUp, Wallet } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
-import { ApiErrorBanner, Card, CardHead, ConfirmModal, ListTable, PageHead, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Card, CardHead, ConfirmModal, ListTable, PageHead, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { ExpenseResponse as Gasto, MonthlyResponse as MesFinanzas, SettingsResponse as Parametros } from "@/lib/api.gen";
 import { MEDIO_PAGO, etiqueta } from "@/lib/etiquetas";
@@ -49,7 +49,12 @@ export default function FinanzasPage() {
       {money(Math.round(m.overhead.value))}
       <span className="block">{m.overhead.reference ? <Tag>Referencia</Tag> : m.overhead.provisional ? <Tag tone="warning">Provisorio</Tag> : <Tag tone="solid">Cerrado</Tag>}</span>
     </> },
-    { key: "estado", header: "", align: "right", render: (m) => m.closed ? <Tag tone="solid">Cerrado</Tag> : m.month < hoy
+    { key: "estado", header: "", align: "right", render: (m) => m.closed ? <span className="inline-flex items-center gap-1">
+      <Tag tone="solid">Cerrado</Tag>
+      <BotonBaja label="Reabrir" tone="neutral" title={`¿Reabrir ${nombreMes(m.month)}?`} confirmLabel="Reabrir mes"
+        description="Se borra la foto del cierre y el mes vuelve a calcularse en vivo; se puede volver a cerrar."
+        className={`${btnSecondary} py-0.5 px-2 text-[11px]`} accion={() => api.del(`/finance/month-closes/${m.month}`, { success: "Mes reabierto." })} />
+    </span> : m.month < hoy
       ? <button type="button" onClick={() => setCerrar(m.month)} className={`${btnSecondary} py-1 text-[11px]`}>Cerrar mes</button> : <Tag>En curso</Tag> },
   ];
 

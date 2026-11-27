@@ -11,6 +11,9 @@ import { ApiErrorBanner } from "@/components/ui";
 
 const UserContext = createContext<CurrentUser | null>(null);
 
+/** Disparado en window cuando cambia el perfil (Mi cuenta): el usuario del contexto se vuelve a pedir. */
+export const PERFIL_CAMBIADO = "admin:perfil-cambiado";
+
 export async function login(email: string, password: string): Promise<void> {
   saveSession(await api.post<SessionResponse>("/auth/login", { email, password }, { silent: true }));
 }
@@ -37,6 +40,11 @@ const noop = () => () => {};
 
 function Me({ children }: { children: React.ReactNode }) {
   const { data, error, reload } = useApiResource(() => api.getOne<CurrentUser>("/me"), []);
+  // solo cuando cambia el perfil: recargar en cada escritura cambiaría toda la app por un error ante un corte de red
+  useEffect(() => {
+    window.addEventListener(PERFIL_CAMBIADO, reload);
+    return () => window.removeEventListener(PERFIL_CAMBIADO, reload);
+  }, [reload]);
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-app-bg p-6">

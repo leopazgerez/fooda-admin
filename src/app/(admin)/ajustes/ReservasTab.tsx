@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ApiErrorBanner, ConfirmModal, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, type Columna } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { ReserveFund as Reserva } from "@/lib/api.gen";
 import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
@@ -38,7 +38,6 @@ function ReservaForm({ reserva, onClose }: { reserva: Reserva | null; onClose: (
   const [nombre, setNombre] = useState(reserva?.name ?? "");
   const [porcentaje, setPorcentaje] = useState(reserva?.percentage ?? 0);
   const [busy, setBusy] = useState(false);
-  const [borrar, setBorrar] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const bad = (k: string) => (error instanceof ApiError && error.field === k ? "!border-danger ring-2 ring-danger/20" : "");
   const correr = async (fn: () => Promise<unknown>) => {
@@ -63,7 +62,8 @@ function ReservaForm({ reserva, onClose }: { reserva: Reserva | null; onClose: (
   };
   return (
     <FormPanel title={reserva ? `Editar ${reserva.name}` : "Nueva reserva"} onClose={onClose} footer={<>
-      {reserva && <button type="button" onClick={() => setBorrar(true)} className={`${btnSecondary} md:mr-auto text-danger`}>Eliminar</button>}
+      {reserva && <BotonBaja label="Eliminar" itemName={reserva.name} className={`${btnSecondary} md:mr-auto text-danger`}
+        accion={() => api.del(`/reserve-funds/${reserva.id}`, { silent: true, success: "Reserva eliminada." })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="reserva-form" disabled={busy || !nombre.trim()} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>
     </>}>
@@ -74,8 +74,6 @@ function ReservaForm({ reserva, onClose }: { reserva: Reserva | null; onClose: (
           <input type="number" min={0} max={100} value={porcentaje} onChange={(e) => setPorcentaje(Math.max(0, Number(e.target.value) || 0))} className={`${inputCls} font-mono ${bad("percentage")}`} />
         </Field>
       </form>
-      {reserva && <ConfirmModal isOpen={borrar} onClose={() => setBorrar(false)} itemName={reserva.name} isLoading={busy}
-        onConfirm={() => correr(() => api.del(`/reserve-funds/${reserva.id}`, { success: "Reserva eliminada." }))} />}
     </FormPanel>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Pencil } from "lucide-react";
-import { ApiErrorBanner, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { CustomerResponse as ClienteVista, SaleResponse as VentaVista } from "@/lib/api.gen";
 import { formatDate } from "@/lib/dateUtils";
@@ -60,6 +60,8 @@ export function ClienteForm({ cliente, onClose, onSaved }: { cliente: ClienteVis
 
   return (
     <FormPanel title={cliente ? `Editar ${cliente.fullName}` : "Nuevo cliente"} onClose={onClose} footer={<>
+      {cliente && <BotonBaja label="Eliminar" itemName={cliente.fullName} description="Si está en uso, la API no lo deja eliminar y te dice por qué." className={`${btnSecondary} md:mr-auto text-danger`}
+        accion={() => api.del(`/customers/${cliente.id}`, { silent: true, success: `${cliente.fullName} eliminado.` })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="cliente-form" disabled={busy || !f.firstName.trim() || !f.lastName.trim()} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>
     </>}>

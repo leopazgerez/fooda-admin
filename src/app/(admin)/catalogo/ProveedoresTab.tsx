@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ApiErrorBanner, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, btnPrimary, btnSecondary, inputCls, type Columna } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { Supplier as Proveedor } from "@/lib/api.gen";
 import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
@@ -61,6 +61,8 @@ function ProveedorForm({ proveedor, siguiente, onClose }: { proveedor: Proveedor
   };
   return (
     <FormPanel title={proveedor ? `Editar ${proveedor.name}` : "Nuevo proveedor"} onClose={onClose} footer={<>
+      {proveedor && <BotonBaja label="Eliminar" itemName={proveedor.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué." className={`${btnSecondary} md:mr-auto text-danger`}
+        accion={() => api.del(`/suppliers/${proveedor.id}`, { silent: true, success: `${proveedor.name} eliminado.` })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="proveedor-form" disabled={busy || !f.nombre.trim()} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>
     </>}>

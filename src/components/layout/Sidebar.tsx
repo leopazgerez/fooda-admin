@@ -11,6 +11,7 @@ import { getAssetPath } from "@/lib/assets";
 import { useSidebar } from "./SidebarContext";
 import { useState } from "react";
 import { ConfirmModal } from "@/components/ui";
+import MiCuentaPanel from "./MiCuentaPanel";
 
 export const isUnder = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -20,6 +21,7 @@ export default function Sidebar() {
   const user = useCurrentUser();
   const { isOpen, closeSidebar } = useSidebar();
   const [salir, setSalir] = useState(false);
+  const [cuenta, setCuenta] = useState(false);
 
   return (
     <>
@@ -68,12 +70,13 @@ export default function Sidebar() {
         </nav>
 
         <div className="p-3 flex items-center justify-between gap-2 bg-sidebar-hover border-t border-sidebar-hover">
-          <div className="flex items-center gap-2 min-w-0">
+          <button type="button" onClick={() => { closeSidebar(); setCuenta(true); }} title="Mi cuenta"
+            className="flex items-center gap-2 min-w-0 rounded-sm cursor-pointer hover:opacity-80 transition-opacity text-left">
             <span className="w-6 h-6 rounded-sm bg-border-subtle border border-border-strong text-text-body flex items-center justify-center font-mono font-bold text-[10px] shrink-0">
               {initials(user.fullName)}
             </span>
             <span className="text-xs font-bold text-sidebar-text-active truncate" title={user.email}>{user.fullName}</span>
-          </div>
+          </button>
           <button
             type="button"
             onClick={() => setSalir(true)}
@@ -84,6 +87,7 @@ export default function Sidebar() {
           </button>
         </div>
       </aside>
+      <AnimatePresence>{cuenta && <MiCuentaPanel onClose={() => setCuenta(false)} />}</AnimatePresence>
       <ConfirmModal tone="neutral" isOpen={salir} onClose={() => setSalir(false)}
         title="¿Cerrar sesión?" description="Vas a salir del panel y tendrás que volver a ingresar." confirmLabel="Cerrar sesión"
         onConfirm={async () => {

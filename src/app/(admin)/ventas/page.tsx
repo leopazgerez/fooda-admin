@@ -11,6 +11,7 @@ import { formatDate, toLocalISODate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
 import { useApiResource, useOptions, useReloadOnWrite } from "@/lib/useApi";
 import PagoPacksPanel from "./PagoPacksPanel";
+import VentaDetalle from "./VentaDetalle";
 import VentaPanel from "./VentaPanel";
 import { AnimatePresence } from "motion/react";
 
@@ -41,6 +42,7 @@ const columnas: Columna<VentaVista>[] = [
 export default function VentasPage() {
   const [sede, setSede] = useState(TODAS);
   const [panel, setPanel] = useState<"venta" | "packs" | null>(null);
+  const [detalle, setDetalle] = useState<number | null>(null);
   const { data, error, reload } = useApiResource(() => Promise.all([
     api.getAll<VentaVista>("/sales"),
     api.getOne<StockResponse>("/stock"),
@@ -54,6 +56,7 @@ export default function VentasPage() {
   const mes = toLocalISODate().slice(0, 7);
   const delMes = ventas.filter((v) => v.date.startsWith(mes));
   const rows = ventas.filter((v) => sede === TODAS || v.branch === sede);
+  const abierta = ventas.find((v) => v.id === detalle);
 
   return (
     <>
@@ -78,10 +81,11 @@ export default function VentasPage() {
         <Card className="p-4 flex flex-col gap-3">
           <CardHead title="VENTAS" caption="Con el lote de cada pack y la ganancia real"
             right={<Segmented options={[TODAS, ...sedes.map((s) => s.name)]} value={sede} onChange={setSede} />} />
-          <ListTable rows={rows} rowKey={(v) => v.id} columns={columnas} empty="Sin ventas con este filtro." footer={`${rows.length} ventas`} />
+          <ListTable rows={rows} rowKey={(v) => v.id} columns={columnas} onRowClick={(v) => setDetalle(v.id)} empty="Sin ventas con este filtro." footer={`${rows.length} ventas`} />
         </Card>
       </main>
       <AnimatePresence>{panel === "venta" && <VentaPanel sedes={sedes} filas={stock.rows} clientes={clientes} parametros={parametros} onClose={() => setPanel(null)} />}</AnimatePresence>
+      <AnimatePresence>{abierta && <VentaDetalle venta={abierta} onClose={() => setDetalle(null)} />}</AnimatePresence>
       <AnimatePresence>{panel === "packs" && <PagoPacksPanel sedes={sedes} filas={stock.rows} parametros={parametros} onClose={() => setPanel(null)} />}</AnimatePresence>
     </>
   );

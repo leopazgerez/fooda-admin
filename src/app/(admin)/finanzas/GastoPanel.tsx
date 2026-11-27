@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ApiErrorBanner, Field, FormPanel, btnPrimary, btnSecondary, inputCls, selectCls } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, btnPrimary, btnSecondary, inputCls, selectCls } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { ExpenseResponse as Gasto } from "@/lib/api.gen";
 import { toLocalISODate } from "@/lib/dateUtils";
@@ -46,6 +46,8 @@ export default function GastoPanel({ gasto, tipos, onClose }: { gasto: Gasto | n
     <FormPanel title={auto ? "Gasto automático" : gasto ? "Editar gasto" : "Registrar gasto"} onClose={onClose} footer={auto
       ? <button type="button" onClick={onClose} className={btnSecondary}>Cerrar</button>
       : <>
+        {gasto && <BotonBaja label="Eliminar" itemName={gasto.detail} className={`${btnSecondary} md:mr-auto text-danger`}
+          accion={() => api.del(`/expenses/${gasto.id}`, { silent: true, success: "Gasto eliminado." })} onHecho={onClose} onError={setError} />}
         <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
         <button type="submit" form="gasto-form" disabled={busy || !f.detail.trim() || f.amount <= 0} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>
       </>}>

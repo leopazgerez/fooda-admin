@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ApiErrorBanner, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { DishResponse as PlatoVista, PackResponse as PackVista, VersionResponse as PackVersion } from "@/lib/api.gen";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
@@ -73,6 +73,8 @@ function PackPanel({ pack, platos, onClose, onCreado }: { pack: PackVista | null
 
   return (
     <FormPanel title={pack ? pack.name : "Nuevo pack"} size="lg" onClose={onClose} footer={<>
+      {pack && <BotonBaja label="Eliminar" itemName={pack.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué." className={`${btnSecondary} md:mr-auto text-danger`}
+        accion={() => api.del(`/packs/${pack.id}`, { silent: true, success: `${pack.name} eliminado.` })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cerrar</button>
       <button type="submit" form="pack-form" disabled={busy || !f.nombre.trim()} className={btnPrimary}>{busy ? "Guardando…" : pack ? "Guardar" : "Crear pack"}</button>
     </>}>

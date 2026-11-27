@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BookOpen, ChevronDown, ChevronRight, ClipboardPlus, FileDown, PackageCheck, ShoppingCart } from "lucide-react";
+import { Archive, BookOpen, ChevronDown, ChevronRight, ClipboardPlus, FileDown, PackageCheck, ShoppingCart } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
-import { ApiErrorBanner, Card, CardHead, ListTable, PageHead, Stat, Tag, btnPrimary, btnSecondary, tdCls, thCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Card, CardHead, ListTable, PageHead, Stat, Tag, btnPrimary, btnSecondary, tdCls, thCls, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { BranchResponse, PackResponse as PackVista, ProductionResponse as ProduccionResumen, ShoppingGroupResponse } from "@/lib/api.gen";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
@@ -13,7 +13,7 @@ import { money } from "@/lib/format";
 import { armarLista, nombreArchivo, pendientes } from "@/lib/listaSuper";
 import { descargarPdf } from "@/lib/listaSuperSalida";
 import { useApiResource, useOptions, useReloadOnWrite } from "@/lib/useApi";
-import { CerrarProduccionPanel, NuevaProduccionPanel, RecetarioPanel } from "./ProduccionPanels";
+import { CerrarProduccionPanel, NuevaProduccionPanel, RecetarioPanel, SobrantesPanel } from "./ProduccionPanels";
 import { AnimatePresence } from "motion/react";
 
 const pct = (n: number) => `${Math.round(n * 100)} %`;
@@ -26,6 +26,7 @@ export default function ProduccionPage() {
   const [cerrar, setCerrar] = useState<ProduccionResumen | null>(null);
   const [abierta, setAbierta] = useState<number | null>(null);
   const [recetario, setRecetario] = useState<ProduccionResumen | null>(null);
+  const [sobrantes, setSobrantes] = useState<ProduccionResumen | null>(null);
   const { data, error, reload } = useApiResource(
     () => Promise.all([api.getAll<ProduccionResumen>("/productions"), api.getOne<PackVista[]>("/packs")]), []);
   useReloadOnWrite(reload);
@@ -77,22 +78,32 @@ export default function ProduccionPage() {
         <Card className="p-4 flex flex-col gap-3">
           <CardHead title="PRODUCCIONES" caption="Costo calculado: estimado al planificar, real con lo pagado en compras" />
           <ListTable rows={lotes} rowKey={(p) => p.id} columns={columnas} empty="Todavía no hay producciones."
-            onRowClick={(p) => setAbierta(abierta === p.id ? null : p.id)} expand={(p) => (abierta === p.id ? <Detalle p={p} onRecetario={() => setRecetario(p)} /> : null)} />
+            onRowClick={(p) => setAbierta(abierta === p.id ? null : p.id)} expand={(p) => (abierta === p.id ? <Detalle p={p} onRecetario={() => setRecetario(p)} onSobrantes={() => setSobrantes(p)} /> : null)} />
         </Card>
       </main>
       <AnimatePresence>{nueva && <NuevaProduccionPanel packs={packs} onClose={() => setNueva(false)} />}</AnimatePresence>
+      <AnimatePresence>{sobrantes && <SobrantesPanel produccion={sobrantes} onClose={() => setSobrantes(null)} />}</AnimatePresence>
       <AnimatePresence>{recetario && <RecetarioPanel produccion={recetario} onClose={() => setRecetario(null)} />}</AnimatePresence>
       <AnimatePresence>{cerrar && <CerrarProduccionPanel produccion={cerrar} sedes={sedes} onClose={() => setCerrar(null)} />}</AnimatePresence>
     </>
   );
 }
 
-function Detalle({ p, onRecetario }: { p: ProduccionResumen; onRecetario: () => void }) {
+function Detalle({ p, onRecetario, onSobrantes }: { p: ProduccionResumen; onRecetario: () => void; onSobrantes: () => void }) {
   const ind = p.overhead;
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap justify-end gap-2">
-        {p.status === "planned" && <BotonListaSuper p={p} />}
+        {p.status === "planned" && <>
+          <BotonBaja label="Anular" title={`¿Anular la producción ${p.code}?`} confirmLabel="Anular producción"
+            description="Se borran sus listas de compra pendientes. Si ya registraste alguna compra, primero anulala desde Compras."
+            className={`${btnSecondary} py-1 text-[11px] text-danger`} accion={() => api.del(`/productions/${p.id}`, { success: "Producción anulada." })} />
+          <button type="button" onClick={onSobrantes} className={`${btnSecondary} py-1 text-[11px]`}><Archive className="w-3 h-3" /> Cargar sobrantes</button>
+          <BotonListaSuper p={p} />
+        </>}
+        {p.status === "closed" && <BotonBaja label="Reabrir" tone="neutral" title={`¿Reabrir la producción ${p.code}?`} confirmLabel="Reabrir"
+          description="Vuelve a Planificada: se revierten los movimientos de stock del cierre (reparto a sedes) y se regeneran las compras pendientes."
+          className={`${btnSecondary} py-1 text-[11px]`} accion={() => api.post(`/productions/${p.id}/reopen`, undefined, { success: "Producción reabierta." })} />}
         <button type="button" onClick={onRecetario} className={`${btnSecondary} py-1 text-[11px]`}><BookOpen className="w-3 h-3" /> Ver recetario</button>
       </div>
       <table className="w-full">

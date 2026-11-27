@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Box, Copy, FileDown, ListChecks, ShoppingCart, Wallet } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
-import { ApiErrorBanner, Card, CardHead, ListTable, PageHead, Segmented, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Card, CardHead, ListTable, PageHead, Segmented, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { DetailResponse, PackagingStatus as Envases, PurchaseResponse as CompraVista, ShoppingGroupResponse, Supplier, SupplyResponse } from "@/lib/api.gen";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
@@ -61,6 +61,9 @@ export default function ComprasPage() {
       <span className="inline-flex flex-col items-center gap-0.5">
         <Tag tone="solid">{etiqueta(ESTADO_COMPRA, c.status)}</Tag>
         {c.date && <span className="text-[10px] text-text-muted font-mono">{formatDate(c.date)}</span>}
+        <BotonBaja label="Anular" title="¿Anular esta compra?" confirmLabel="Anular compra" className={`${btnSecondary} py-0.5 px-2 text-[11px] text-danger`}
+          description={c.productionId === null ? "Se borra la compra y su gasto." : "Se borra su gasto y la lista vuelve a Por comprar."}
+          accion={() => api.del(`/purchases/${c.id}`, { success: "Compra anulada." })} />
       </span>
     ) : (
       <span className="inline-flex flex-wrap justify-center gap-1">

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ApiErrorBanner, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, selectCls, type Columna } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { BranchResponse, SaleResponse, StockResponse } from "@/lib/api.gen";
 import { toLocalISODate } from "@/lib/dateUtils";
@@ -98,6 +98,8 @@ function SedeForm({ sede, onClose }: { sede: Sede | SedeNueva; onClose: () => vo
 
   return (
     <FormPanel title={"id" in sede ? `Editar ${sede.name}` : "Nueva sede"} onClose={onClose} footer={<>
+      {"id" in sede && <BotonBaja label="Eliminar" itemName={sede.name} description="Si está en uso, la API no lo deja eliminar y te dice por qué." className={`${btnSecondary} md:mr-auto text-danger`}
+        accion={() => api.del(`/branches/${sede.id}`, { silent: true, success: `${sede.name} eliminada.` })} onHecho={onClose} onError={setError} />}
       <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
       <button type="submit" form="sede-form" disabled={busy || !f.name.trim()} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>
     </>}>

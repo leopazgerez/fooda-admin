@@ -33,15 +33,18 @@ npm run api:types  # regenera src/lib/api.gen.ts desde el OpenAPI (con fooda-api
 | Menú | Ruta | Qué hace |
 |---|---|---|
 | Dashboard | `/dashboard` | Ventas, ganancia y caja del mes, stock por sede, avisos (compras pendientes, envases, cumpleaños, clientes para recontactar), ventas por pack y últimas producciones |
-| Compras | `/compras` | Lista de compras por proveedor que genera cada producción; al registrarla queda comprada y crea el gasto. También compras sueltas y estado de envases. Cada lista pendiente se puede copiar o bajar en PDF para llevar al súper |
-| Producción | `/produccion` | Planificar (cuántos packs de cada uno), costo del lote calculado solo, recetario escalado para cocinar, PDF con todas las listas de súper pendientes y cierre con reparto a sedes |
-| Inventario y traslados | `/stock` | Stock por sede y lote (FIFO), despachos entre sedes (mueven el stock en el acto) y ajustes |
-| Ventas | `/ventas` | Nueva venta (siempre cobrada completa), buscar o crear el cliente, y "Pagar con packs" (trueque o uso interno: descuenta stock sin tocar la caja) |
+| Compras | `/compras` | Lista de compras por proveedor que genera cada producción; al registrarla queda comprada y crea el gasto. También compras sueltas y estado de envases. Cada lista pendiente se puede copiar o bajar en PDF para llevar al súper. Una compra registrada se puede anular (borra su gasto) |
+| Producción | `/produccion` | Planificar (cuántos packs de cada uno), costo del lote calculado solo, recetario escalado para cocinar, PDF con todas las listas de súper pendientes, sobrantes de insumos, cierre con reparto a sedes, reabrir una cerrada y anular una planificada |
+| Inventario y traslados | `/stock` | Stock por sede y lote (FIFO), despachos entre sedes (mueven el stock en el acto, se pueden anular) y ajustes (se pueden deshacer justo después de cargarlos) |
+| Ventas | `/ventas` | Nueva venta (siempre cobrada completa), buscar o crear el cliente, y "Pagar con packs" (trueque o uso interno: descuenta stock sin tocar la caja). Tocar una venta abre su detalle, desde donde se anula |
 | Clientes | `/clientes` | Ficha, historial de compras, recontactos y cumpleaños |
-| Finanzas y caja | `/finanzas` | Resumen por mes, gastos y cierre de mes (fija el indirecto por pack) |
+| Finanzas y caja | `/finanzas` | Resumen por mes, gastos (los manuales se pueden eliminar) y cierre de mes (fija el indirecto por pack; un mes cerrado se puede reabrir) |
 | Catálogo | `/catalogo` | Insumos (con historial de precios), platos (recetas), packs (precio y versiones de composición) y proveedores |
 | Análisis | `/analisis` | Ventas por pack, sede y mes o semana, con los cambios de composición marcados |
 | Ajustes | `/ajustes` | Sedes (capacidad, umbrales, envío), parámetros, reservas y listas (tipos de gasto, motivos) |
+| Mi cuenta | (tocar el nombre en el menú) | Cambiar el nombre y la contraseña |
+
+Insumos, platos, packs, proveedores, clientes y sedes se eliminan desde su panel; si están en uso la API no lo deja y el panel muestra por qué.
 
 Patrón común: el contenido es una lista con columnas (`ListTable`); altas y ediciones se abren en un panel
 (`FormPanel`: drawer a la derecha en desktop, pantalla completa en mobile). Nada se carga en la pantalla principal.

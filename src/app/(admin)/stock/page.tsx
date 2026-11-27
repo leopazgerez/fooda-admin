@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Send, SlidersHorizontal } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
-import { ApiErrorBanner, Card, CardHead, ListTable, PageHead, Segmented, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
+import { ApiErrorBanner, BotonBaja, Card, CardHead, ListTable, PageHead, Segmented, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { BranchResponse, PackResponse as PackVista, StockResponse as StockVista, StockRow as FilaStock, TransferResponse as TrasladoVista } from "@/lib/api.gen";
 import { formatDate } from "@/lib/dateUtils";
@@ -32,6 +32,9 @@ const colTraslados: Columna<TrasladoVista>[] = [
     {t.notes && <span className="block text-[11px] text-text-muted">{t.notes}</span>}
   </> },
   { key: "packs", header: "PACKS", align: "right", className: "font-mono font-bold", render: (t) => t.packs },
+  { key: "anular", header: "", align: "right", render: (t) => <BotonBaja label="Anular" title="¿Anular este traslado?" confirmLabel="Anular traslado"
+    description="Los packs vuelven a la sede de origen." className={`${btnSecondary} py-0.5 px-2 text-[11px] text-danger`}
+    accion={() => api.del(`/transfers/${t.id}`, { success: "Traslado anulado." })} /> },
 ];
 
 export default function StockPage() {

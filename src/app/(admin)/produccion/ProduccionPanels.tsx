@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { ApiErrorBanner, ConfirmModal, Field, FormPanel, btnPrimary, btnSecondary, inputCls, tdCls, thCls } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { BranchResponse as SedeOpcion, PackResponse as PackVista, ProductionResponse as ProduccionResumen, RecipeBookResponse as RecetarioPack } from "@/lib/api.gen";
+import type { BranchResponse as SedeOpcion, DetailResponse, PackResponse as PackVista, ProductionResponse as ProduccionResumen, RecipeBookResponse as RecetarioPack, ShoppingGroupResponse, SupplyResponse } from "@/lib/api.gen";
 import { toLocalISODate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
-import { useApiResource } from "@/lib/useApi";
+import { insumosSobrantes, mapaSobrantes } from "@/lib/sobrantes";
+import { useApiResource, useOptions } from "@/lib/useApi";
 
 const num = `${inputCls} font-mono w-24 text-right`;
 
@@ -179,6 +180,49 @@ export function RecetarioPanel({ produccion, onClose }: { produccion: Produccion
         ))}
         <p className="text-[11px] text-text-secondary">Cantidades con las recetas congeladas al planificar, multiplicadas por los packs planificados.</p>
       </div>
+    </FormPanel>
+  );
+}
+
+/** Sobrantes de la producción anterior: la lista de súper los descuenta. La API reemplaza el mapa entero: se manda completo. */
+export function SobrantesPanel({ produccion, onClose }: { produccion: ProduccionResumen; onClose: () => void }) {
+  const id = produccion.id;
+  const { data, error: errorCarga } = useApiResource(() => Promise.all([
+    api.getOne<DetailResponse>(`/productions/${id}`),
+    api.getOne<ShoppingGroupResponse[]>(`/productions/${id}/shopping-list`),
+  ]), [id]);
+  const { options: insumos } = useOptions<SupplyResponse>("/supplies");
+  const [editados, setEditados] = useState<Record<number, string>>({});
+  const { busy, error, run } = useGuardar(onClose);
+  const [detalle, lista] = data ?? [null, []];
+  const actuales = detalle?.leftovers ?? {};
+  const filas = insumosSobrantes(lista, actuales, insumos);
+  const valor = (supplyId: number) => editados[supplyId] ?? (actuales[supplyId] ? String(actuales[supplyId]) : "");
+  const guardar = (e: React.SubmitEvent) => {
+    e.preventDefault();
+    if (!detalle) return;
+    run(() => api.patch(`/productions/${id}/leftovers`, { leftovers: mapaSobrantes(actuales, editados), version: detalle.version },
+      { silent: true, success: "Sobrantes guardados. La lista de súper ya los descuenta." }));
+  };
+  return (
+    <FormPanel title={`Sobrantes · ${produccion.code}`} onClose={onClose} footer={<>
+      <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
+      <button type="submit" form="sobrantes-form" disabled={busy || !detalle} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>
+    </>}>
+      <form id="sobrantes-form" noValidate onSubmit={guardar} className="flex flex-col gap-3">
+        <p className="text-xs text-text-secondary">Lo que te sobró de la producción anterior. La lista de súper descuenta estas cantidades.</p>
+        <ApiErrorBanner error={errorCarga ?? error} />
+        {!data && !errorCarga && <p className="text-xs text-text-muted">Cargando…</p>}
+        {data && !filas.length && <p className="text-xs text-text-muted">Esta producción no tiene insumos para comprar.</p>}
+        {filas.map((f) => (
+          <label key={f.supplyId} className="grid grid-cols-[minmax(0,1fr)_7rem_2.5rem] items-center gap-2 text-xs">
+            <span className="text-text-body truncate">{f.nombre}</span>
+            <input type="number" min={0} inputMode="decimal" value={valor(f.supplyId)} placeholder="0" aria-label={`Sobrante de ${f.nombre}`}
+              onChange={(e) => setEditados({ ...editados, [f.supplyId]: e.target.value })} className={`${inputCls} font-mono text-right`} />
+            <span className="text-text-muted font-mono">{f.unit}</span>
+          </label>
+        ))}
+      </form>
     </FormPanel>
   );
 }
