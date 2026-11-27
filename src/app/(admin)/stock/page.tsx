@@ -32,7 +32,9 @@ const colTraslados: Columna<TrasladoVista>[] = [
     {t.notes && <span className="block text-[11px] text-text-muted">{t.notes}</span>}
   </> },
   { key: "packs", header: "PACKS", align: "right", className: "font-mono font-bold", render: (t) => t.packs },
-  { key: "anular", header: "", align: "right", render: (t) => <BotonBaja label="Anular" title="¿Anular este traslado?" confirmLabel="Anular traslado"
+  // los de reparto (cierre de producción) la API no los anula: se deshacen reabriendo la producción
+  { key: "anular", header: "", align: "right", render: (t) => t.sourceProductionId !== null
+    ? <span title="Se deshace reabriendo la producción"><Tag>Reparto</Tag></span> : <BotonBaja label="Anular" title="¿Anular este traslado?" confirmLabel="Anular traslado"
     description="Los packs vuelven a la sede de origen." className={`${btnSecondary} py-0.5 px-2 text-[11px] text-danger`}
     accion={() => api.del(`/transfers/${t.id}`, { success: "Traslado anulado." })} /> },
 ];
