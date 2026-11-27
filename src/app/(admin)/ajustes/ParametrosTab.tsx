@@ -48,7 +48,9 @@ export default function ParametrosTab() {
   );
 }
 
-function ParametrosForm({ actual, insumos, onClose }: { actual: Parametros; insumos: SupplyResponse[]; onClose: () => void }) {
+function ParametrosForm({ actual: abierto, insumos, onClose }: { actual: Parametros; insumos: SupplyResponse[]; onClose: () => void }) {
+  // el registro tal como se abrió: base del PATCH y su version (si otra pestaña lo cambió, 409 y no se pisa)
+  const [actual] = useState(abierto);
   const [f, setF] = useState(actual);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);

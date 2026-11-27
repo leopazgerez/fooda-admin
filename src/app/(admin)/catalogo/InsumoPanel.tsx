@@ -13,9 +13,11 @@ import { useApiResource } from "@/lib/useApi";
 
 
 /** Alta o edición de insumo. El precio se carga como un precio nuevo con fecha (el historial se conserva). */
-export default function InsumoPanel({ insumo, proveedores, onClose }: { insumo: InsumoVista | null; proveedores: Proveedor[]; onClose: () => void }) {
+export default function InsumoPanel({ insumo: abierto, proveedores, onClose }: { insumo: InsumoVista | null; proveedores: Proveedor[]; onClose: () => void }) {
+  // el registro tal como se abrió: base del PATCH y su version (si otra pestaña lo cambió, 409 y no se pisa)
+  const [insumo] = useState(abierto);
   const [f, setF] = useState({
-    name: insumo?.name ?? "", unit: insumo?.unit ?? "g", supplierId: insumo?.supplierId ?? proveedores[0]?.id ?? 0,
+    name: insumo?.name ?? "", unit: insumo?.unit ?? "g", supplierId: insumo?.supplierId ?? 0,
     content: insumo?.content ?? 1000, gramsPerUnit: insumo?.gramsPerUnit ?? 0, presentation: insumo?.presentation ?? "", active: insumo?.active ?? true,
   });
   const [precioInicial, setPrecioInicial] = useState(0);
@@ -27,7 +29,8 @@ export default function InsumoPanel({ insumo, proveedores, onClose }: { insumo: 
   const guardar = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (busy) return;
-    const todo = { ...f, name: f.name.trim(), presentation: f.presentation.trim() || null, gramsPerUnit: f.unit === "u" && f.gramsPerUnit ? f.gramsPerUnit : null };
+    // proveedores llega async: sin elección, el primero (derivado, no copiado al abrir)
+    const todo = { ...f, supplierId: f.supplierId || proveedores[0]?.id || 0, name: f.name.trim(), presentation: f.presentation.trim() || null, gramsPerUnit: f.unit === "u" && f.gramsPerUnit ? f.gramsPerUnit : null };
     setError(null);
     setBusy(true);
     try {
@@ -60,7 +63,7 @@ export default function InsumoPanel({ insumo, proveedores, onClose }: { insumo: 
         <Field label="NOMBRE"><input value={f.name} maxLength={80} onChange={(e) => setF({ ...f, name: e.target.value })} className={`${inputCls} ${bad("name")}`} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="PROVEEDOR">
-            <select value={f.supplierId} onChange={(e) => setF({ ...f, supplierId: Number(e.target.value) })} className={`${selectCls} ${bad("supplierId")}`}>
+            <select value={f.supplierId || proveedores[0]?.id || ""} onChange={(e) => setF({ ...f, supplierId: Number(e.target.value) })} className={`${selectCls} ${bad("supplierId")}`}>
               {proveedores.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </Field>

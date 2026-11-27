@@ -47,8 +47,10 @@ export function useReloadOnWrite(reload: () => void) {
 export function useGuardar(onClose?: () => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
+  const enCurso = useRef(false); // no `busy`: dos toques antes del próximo render verían el mismo false
   const run = async (fn: () => Promise<unknown>) => {
-    if (busy) return;
+    if (enCurso.current) return;
+    enCurso.current = true;
     setError(null);
     setBusy(true);
     try {
@@ -57,6 +59,7 @@ export function useGuardar(onClose?: () => void) {
     } catch (err) {
       setError(err);
     } finally {
+      enCurso.current = false;
       setBusy(false);
     }
   };
@@ -64,7 +67,8 @@ export function useGuardar(onClose?: () => void) {
 }
 
 /**
- * El registro abierto, tomado de la lista recargada (con la `version` al día) y no la copia del click.
+ * El registro abierto, tomado de la lista recargada (datos al día para mostrar). Los formularios guardan el registro
+ * con el que se abrieron como base del PATCH y su `version`, así un 409 no termina pisando lo de otra pestaña.
  * "nuevo", null o un objeto sin id (alta) pasan tal cual.
  */
 export function vigente<T extends { id: number }, O>(lista: T[], abierto: T | O): T | O {

@@ -71,14 +71,15 @@ export function CerrarProduccionPanel({ produccion, sedes, onClose }: { producci
   const { busy, error, run } = useGuardar(onClose);
   const [confirmar, setConfirmar] = useState(false);
   const entero = (v: string) => Math.max(0, Math.floor(Number(v) || 0));
-  const cerrar = () => run(() => api.post(`/productions/${produccion.id}/close`, {
+  // el modal se cierra al confirmar: si la API rechaza, el error queda a la vista en el panel
+  const cerrar = () => { setConfirmar(false); return run(() => api.post(`/productions/${produccion.id}/close`, {
     date: fecha,
     lines: produccion.packLines.map((p) => ({ packId: p.packId, actual: real[p.packId] ?? 0 })),
     distribution: Object.entries(reparto).filter(([, c]) => c > 0).map(([k, quantity]) => {
       const [branchId, packId] = k.split("|").map(Number);
       return { branchId, packId, quantity };
     }),
-  }, { silent: true, success: `Producción ${produccion.code} cerrada: el stock ya está en las sedes.` }));
+  }, { silent: true, success: `Producción ${produccion.code} cerrada: el stock ya está en las sedes.` })); };
 
   // el popup va como hermano del panel: dentro de un ancestro animado (transform) quedaría recortado
   return (<>
@@ -120,9 +121,9 @@ export function CerrarProduccionPanel({ produccion, sedes, onClose }: { producci
         </div>
       </form>
     </FormPanel>
-    <ConfirmModal tone="neutral" isOpen={confirmar} onClose={() => setConfirmar(false)} onConfirm={cerrar}
+    <ConfirmModal tone="neutral" isOpen={confirmar} onClose={() => setConfirmar(false)} onConfirm={cerrar} isLoading={busy}
       title={`¿Cerrar producción ${produccion.code}?`} confirmLabel="Cerrar producción"
-      description="Los packs que salieron pasan al stock de las sedes según el reparto. No se puede deshacer." />
+      description="Los packs que salieron pasan al stock de las sedes según el reparto. Si hace falta corregir algo, se puede reabrir desde el detalle." />
   </>);
 }
 

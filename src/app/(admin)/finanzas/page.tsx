@@ -114,7 +114,7 @@ export default function FinanzasPage() {
       <AnimatePresence>{abierto && <GastoPanel gasto={abierto === "nuevo" ? null : abierto} tipos={parametros?.expenseTypes ?? []} onClose={() => setPanel(null)} />}</AnimatePresence>
       <ConfirmModal tone="neutral" isOpen={!!cerrar} onClose={() => setCerrar(null)} onConfirm={confirmarCierre} isLoading={cerrando}
         title={cerrar ? `Cerrar ${nombreMes(cerrar)}` : ""} confirmLabel="Cerrar mes"
-        description={cerrar ? `El indirecto por pack de ${nombreMes(cerrar)} queda fijo y deja de cambiar con nuevos gastos. No se puede deshacer.` : ""} />
+        description={cerrar ? `El indirecto por pack de ${nombreMes(cerrar)} queda fijo y deja de cambiar con nuevos gastos. Se puede reabrir desde el mes.` : ""} />
     </>
   );
 }

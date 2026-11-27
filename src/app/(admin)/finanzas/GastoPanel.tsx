@@ -10,7 +10,9 @@ import { MEDIOS } from "../ventas/VentaPanel";
 
 
 /** Alta o edición de un gasto. Los generados automáticamente (compra o pago con packs) se muestran en solo lectura. */
-export default function GastoPanel({ gasto, tipos, onClose }: { gasto: Gasto | null; tipos: string[]; onClose: () => void }) {
+export default function GastoPanel({ gasto: abierto, tipos, onClose }: { gasto: Gasto | null; tipos: string[]; onClose: () => void }) {
+  // el registro tal como se abrió: base del PATCH y su version (si otra pestaña lo cambió, 409 y no se pisa)
+  const [gasto] = useState(abierto);
   const auto = !!(gasto?.purchaseId || gasto?.saleId);
   const [f, setF] = useState({
     date: gasto?.date ?? toLocalISODate(), type: gasto?.type ?? tipos[0] ?? "", detail: gasto?.detail ?? "",

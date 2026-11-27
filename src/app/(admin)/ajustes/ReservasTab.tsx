@@ -33,7 +33,9 @@ export default function ReservasTab() {
   );
 }
 
-function ReservaForm({ reserva, onClose }: { reserva: Reserva | null; onClose: () => void }) {
+function ReservaForm({ reserva: abierto, onClose }: { reserva: Reserva | null; onClose: () => void }) {
+  // el registro tal como se abrió: base del PATCH y su version (si otra pestaña lo cambió, 409 y no se pisa)
+  const [reserva] = useState(abierto);
   const [nombre, setNombre] = useState(reserva?.name ?? "");
   const [porcentaje, setPorcentaje] = useState(reserva?.percentage ?? 0);
   const [busy, setBusy] = useState(false);

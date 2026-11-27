@@ -34,7 +34,9 @@ export default function ProveedoresTab() {
   );
 }
 
-function ProveedorForm({ proveedor, siguiente, onClose }: { proveedor: Proveedor | null; siguiente: number; onClose: () => void }) {
+function ProveedorForm({ proveedor: abierto, siguiente, onClose }: { proveedor: Proveedor | null; siguiente: number; onClose: () => void }) {
+  // el registro tal como se abrió: base del PATCH y su version (si otra pestaña lo cambió, 409 y no se pisa)
+  const [proveedor] = useState(abierto);
   const [f, setF] = useState({ nombre: proveedor?.name ?? "", diaCompra: proveedor?.purchaseDay ?? "", orden: proveedor?.sortOrder ?? siguiente });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);

@@ -42,14 +42,15 @@ export default function DashboardPage() {
   const d = data;
   const mes = d?.month;
   const stock = d?.stockByBranch ?? [];
-  const sedes = d?.salesByPack[0]?.byBranch ?? [];
+  // todas las sedes de cualquier pack (no solo las del primero) y cada celda buscada por id, no por posición
+  const sedes = [...new Map((d?.salesByPack ?? []).flatMap((v) => v.byBranch).map((b) => [b.branchId, b])).values()];
   const avisos = d?.notices;
   const variacion = d && d.salesPreviousMonthSamePeriod ? mes!.sales / d.salesPreviousMonthSamePeriod - 1 : null;
 
   const colVentas: Columna<FilaVentas>[] = [
     { key: "pack", header: "PACK", className: "font-semibold text-brand-dark whitespace-nowrap", render: (v) => v.pack },
-    ...sedes.map((s, i): Columna<FilaVentas> => ({ key: `s${s.branchId}`, header: s.branch.toUpperCase(), align: "right", hideBelow: "sm",
-      className: "font-mono text-text-secondary", render: (v) => v.byBranch[i]?.quantity ?? 0 })),
+    ...sedes.map((s): Columna<FilaVentas> => ({ key: `s${s.branchId}`, header: s.branch.toUpperCase(), align: "right", hideBelow: "sm",
+      className: "font-mono text-text-secondary", render: (v) => v.byBranch.find((b) => b.branchId === s.branchId)?.quantity ?? 0 })),
     { key: "cant", header: "PACKS", align: "right", className: "font-mono", render: (v) => v.quantity },
     { key: "monto", header: "FACTURADO", align: "right", className: "font-mono", render: (v) => money(v.amount) },
   ];

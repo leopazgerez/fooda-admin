@@ -6,7 +6,8 @@ import Topbar from "@/components/layout/Topbar";
 import { Field, PageHead, Stat, inputCls, selectCls } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { AnalysisSummary, BranchResponse, PackMargins } from "@/lib/api.gen";
-import { variacion } from "@/lib/analisis";
+import { fechaParaFiltro, variacion } from "@/lib/analisis";
+import { formatDate } from "@/lib/dateUtils";
 import { useApiResource, useOptions } from "@/lib/useApi";
 import CostoGanancia from "./CostoGanancia";
 import Insumos from "./Insumos";
@@ -22,9 +23,9 @@ function Variacion({ actual, anterior }: { actual: number; anterior: number }) {
 }
 
 /** Margen contra el período anterior, en puntos porcentuales (un % de un % confunde). */
-function Puntos({ actual, anterior }: { actual: number; anterior: number }) {
+function Puntos({ actual, anterior, huboVentas }: { actual: number; anterior: number; huboVentas: boolean }) {
   const d = Math.round((actual - anterior) * 100);
-  if (!anterior) return <span>— sin datos del período anterior</span>;
+  if (!huboVentas) return <span>— sin datos del período anterior</span>;
   return <span className={d >= 0 ? "text-success" : "text-danger"}>{d >= 0 ? "▲" : "▼"} {Math.abs(d)} pts vs. período anterior ({pct(anterior)})</span>;
 }
 
@@ -32,6 +33,14 @@ function Puntos({ actual, anterior }: { actual: number; anterior: number }) {
 export default function AnalisisPage() {
   const [filtros, setFiltros] = useState<Filtros>({ desde: "", hasta: "", agrupar: "month", sede: null });
   const set = (cambio: Partial<Filtros>) => setFiltros((f) => ({ ...f, ...cambio }));
+  // lo que se ve en los inputs de fecha; al filtro solo llega una fecha completa o vacío (default de la API)
+  const [fechas, setFechas] = useState({ desde: "", hasta: "" });
+  const fecha = (k: "desde" | "hasta", v: string) => {
+    setFechas((x) => ({ ...x, [k]: v }));
+    const valida = fechaParaFiltro(v);
+    if (valida !== null && valida !== filtros[k]) set({ [k]: valida });
+  };
+  const porDefecto = (iso?: string) => (iso ? `Vacío: ${formatDate(iso)}` : undefined);
   const { options: sedes } = useOptions<BranchResponse>("/branches");
   const resumen = useApiResource(() => api.getOne<AnalysisSummary>("/analysis/summary", consulta(filtros)), [filtros]);
   const margen = useApiResource(() => api.getOne<PackMargins>("/analysis/packs/margin", consulta(filtros)), [filtros]);
@@ -43,8 +52,8 @@ export default function AnalisisPage() {
       <main className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 w-full min-w-0">
         <PageHead title="Análisis de packs" subtitle="Qué se vende, dónde, cuánto deja y por qué cambió. Sin uso interno ni pagos con packs" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl">
-          <Field label="DESDE"><input type="date" value={filtros.desde || r?.from || ""} onChange={(e) => set({ desde: e.target.value })} className={inputCls} /></Field>
-          <Field label="HASTA"><input type="date" value={filtros.hasta || r?.to || ""} onChange={(e) => set({ hasta: e.target.value })} className={inputCls} /></Field>
+          <Field label="DESDE" hint={!fechas.desde ? porDefecto(r?.from) : undefined}><input type="date" value={fechas.desde} onChange={(e) => fecha("desde", e.target.value)} className={inputCls} /></Field>
+          <Field label="HASTA" hint={!fechas.hasta ? porDefecto(r?.to) : undefined}><input type="date" value={fechas.hasta} onChange={(e) => fecha("hasta", e.target.value)} className={inputCls} /></Field>
           <Field label="AGRUPAR POR">
             <select value={filtros.agrupar} onChange={(e) => set({ agrupar: e.target.value as Filtros["agrupar"] })} className={selectCls}>
               <option value="month">Mes</option><option value="week">Semana</option>
@@ -70,7 +79,7 @@ export default function AnalisisPage() {
               <Stat label="GANANCIA" icon={<TrendingUp className="w-3.5 h-3.5" />} value={pesos(r.current.profit)}
                 foot={<Variacion actual={r.current.profit} anterior={r.previous.profit} />} />
               <Stat label="MARGEN" icon={<Percent className="w-3.5 h-3.5" />} value={pct(r.current.margin)}
-                foot={<Puntos actual={r.current.margin} anterior={r.previous.margin} />} />
+                foot={<Puntos actual={r.current.margin} anterior={r.previous.margin} huboVentas={r.previous.packs > 0} />} />
             </div>
           )}
         </Seccion>

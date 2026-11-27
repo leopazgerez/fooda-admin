@@ -63,7 +63,9 @@ export default function SedesTab() {
   );
 }
 
-function SedeForm({ sede, onClose }: { sede: Sede | SedeNueva; onClose: () => void }) {
+function SedeForm({ sede: abierto, onClose }: { sede: Sede | SedeNueva; onClose: () => void }) {
+  // el registro tal como se abrió: base del PATCH y su version (si otra pestaña lo cambió, 409 y no se pisa)
+  const [sede] = useState(abierto);
   const [f, setF] = useState(sede);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);

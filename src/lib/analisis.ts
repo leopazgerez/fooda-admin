@@ -55,3 +55,8 @@ export function nombresUnicos(pares: [number, string][]): Map<number, string> {
   for (const n of ids.values()) veces.set(n, (veces.get(n) ?? 0) + 1);
   return new Map([...ids].map(([id, n]) => [id, (veces.get(n) ?? 0) > 1 ? `${n} #${id}` : n]));
 }
+
+/** Valor de un input date que puede ir al filtro: vacío (= default de la API) o una fecha completa; null = a medio escribir. */
+export function fechaParaFiltro(valor: string): string | null {
+  return valor === "" || (/^\d{4}-\d{2}-\d{2}$/.test(valor) && valor >= "2000-01-01") ? valor : null;
+}

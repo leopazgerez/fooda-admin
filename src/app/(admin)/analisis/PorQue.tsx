@@ -32,7 +32,7 @@ function detalle(e: AnalysisEvent) {
 /** ¿Por qué cambió? Lo que movió a los packs en el período y qué explica que una producción costara distinto. */
 export default function PorQue({ filtros, producciones }: { filtros: Filtros; producciones: AnalysisProductionCost[] }) {
   const { data, error } = useApiResource(() => api.getOne<AnalysisEvents>("/analysis/events", consulta(filtros)), [filtros]);
-  const [abierto, setAbierto] = useState<number | null>(null);
+  const [abierto, setAbierto] = useState<number | null>(null); // versionId: estable aunque cambien los filtros
   const eventos = (data?.events ?? []).map((e, i) => ({ ...e, i }));
   const columnas: Columna<(typeof eventos)[number]>[] = [
     { key: "fecha", header: "FECHA", className: "font-mono whitespace-nowrap text-text-secondary", render: (e) => formatDate(e.date) },
@@ -44,8 +44,9 @@ export default function PorQue({ filtros, producciones }: { filtros: Filtros; pr
     <Seccion titulo="¿POR QUÉ CAMBIÓ?" pregunta="Cambios de menú, recetas y precios en el período (la sede solo filtra el precio cobrado). Tocá un cambio de composición para ver los platos"
       error={error} cargando={!data && !error}>
       <ListTable rows={eventos} rowKey={(e) => e.i} columns={columnas} empty="Sin cambios en el período."
-        onRowClick={(e) => e.kind === "composition" && setAbierto(abierto === e.i ? null : e.i)}
-        expand={(e) => (abierto === e.i && e.packId !== null ? <DetalleCambio packId={e.packId} fecha={e.date} /> : null)} />
+        onRowClick={(e) => e.kind === "composition" && setAbierto(abierto === e.versionId ? null : e.versionId)}
+        expand={(e) => (e.kind === "composition" && e.versionId !== null && abierto === e.versionId && e.packId !== null
+          ? <DetalleCambio packId={e.packId} fecha={e.date} /> : null)} />
       <CostoDistinto producciones={producciones} />
     </Seccion>
   );

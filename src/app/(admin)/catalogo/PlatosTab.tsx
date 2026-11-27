@@ -42,7 +42,9 @@ export default function PlatosTab() {
   );
 }
 
-function PlatoPanel({ plato, insumos, onClose }: { plato: PlatoVista | null; insumos: InsumoVista[]; onClose: () => void }) {
+function PlatoPanel({ plato: abierto, insumos, onClose }: { plato: PlatoVista | null; insumos: InsumoVista[]; onClose: () => void }) {
+  // el registro tal como se abrió: base del PATCH y su version (si otra pestaña lo cambió, 409 y no se pisa)
+  const [plato] = useState(abierto);
   const [nombre, setNombre] = useState(plato?.name ?? "");
   const [receta, setReceta] = useState<LineaReceta[]>(plato?.recipe.map((l) => ({ ...l })) ?? []);
   const [busy, setBusy] = useState(false);

@@ -44,6 +44,8 @@ export default function PacksTab() {
 }
 
 function PackPanel({ pack, platos, onClose, onCreado }: { pack: PackVista | null; platos: PlatoVista[]; onClose: () => void; onCreado: (p: PackVista) => void }) {
+  // base del PATCH y su version tal como se abrió (lo que se muestra sigue al día)
+  const [base] = useState(pack);
   const [f, setF] = useState({ nombre: pack?.name ?? "", precio: pack?.salePrice ?? 0, activo: pack?.active ?? true });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -61,8 +63,8 @@ function PackPanel({ pack, platos, onClose, onCreado }: { pack: PackVista | null
       }
       // price: el precio propio del pack; salePrice es el que rige (propio o el general de Ajustes)
       const body = Object.fromEntries(Object.entries({ name: f.nombre.trim(), price: f.precio, active: f.activo })
-        .filter(([k, v]) => v !== (k === "price" ? pack.salePrice : pack[k as "name" | "active"])));
-      if (Object.keys(body).length) await api.patch(`/packs/${pack.id}`, { ...body, version: pack.version }, { silent: true, success: `${f.nombre.trim()} actualizado.` });
+        .filter(([k, v]) => v !== (k === "price" ? (base ?? pack).salePrice : (base ?? pack)[k as "name" | "active"])));
+      if (Object.keys(body).length) await api.patch(`/packs/${pack.id}`, { ...body, version: (base ?? pack).version }, { silent: true, success: `${f.nombre.trim()} actualizado.` });
       onClose();
     } catch (err) {
       setError(err);

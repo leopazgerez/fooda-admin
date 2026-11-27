@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ancho, apilar, elegido, escala, etiquetaPeriodo, nombresUnicos, variacion } from "./analisis.ts";
+import { ancho, apilar, elegido, escala, etiquetaPeriodo, fechaParaFiltro, nombresUnicos, variacion } from "./analisis.ts";
 
 test("escala vacía es cero y no da anchos", () => {
   assert.deepEqual(escala([]), { max: 0, min: 0 });
@@ -53,4 +53,11 @@ test("nombres repetidos se distinguen por id; los únicos quedan igual", () => {
   assert.equal(m.get(1), "Caserito #1");
   assert.equal(m.get(3), "Caserito #3");
   assert.equal(m.get(2), "Proteico");
+});
+
+test("solo una fecha completa o vacía llega al filtro", () => {
+  assert.equal(fechaParaFiltro(""), "");
+  assert.equal(fechaParaFiltro("2026-11-03"), "2026-11-03");
+  assert.equal(fechaParaFiltro("0002-11-03"), null); // año a medio escribir
+  assert.equal(fechaParaFiltro("2026-11"), null);
 });

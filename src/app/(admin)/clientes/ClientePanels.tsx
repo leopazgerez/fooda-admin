@@ -17,7 +17,9 @@ const CAMPOS = ["firstName", "lastName", "phone", "address", "birthday", "notes"
 type Campo = (typeof CAMPOS)[number];
 
 /** Alta (cliente null) o edición: PATCH solo con lo cambiado; un campo vaciado va como null. */
-export function ClienteForm({ cliente, onClose, onSaved }: { cliente: ClienteVista | null; onClose: () => void; onSaved?: (c: ClienteVista) => void }) {
+export function ClienteForm({ cliente: abierto, onClose, onSaved }: { cliente: ClienteVista | null; onClose: () => void; onSaved?: (c: ClienteVista) => void }) {
+  // el registro tal como se abrió: base del PATCH y su version (si otra pestaña lo cambió, 409 y no se pisa)
+  const [cliente] = useState(abierto);
   const [f, setF] = useState<Record<Campo, string>>(Object.fromEntries(CAMPOS.map((k) => [k, cliente?.[k] ?? ""])) as Record<Campo, string>);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);

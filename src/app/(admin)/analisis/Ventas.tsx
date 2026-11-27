@@ -23,7 +23,8 @@ const MEDIDAS = ["PACKS", "FACTURADO"] as const;
 export default function Ventas({ filtros }: { filtros: Filtros }) {
   const [medida, setMedida] = useState<(typeof MEDIDAS)[number]>("PACKS");
   const { data, error } = useApiResource(() => api.getOne<AnalisisPacks>("/analysis/packs", consulta(filtros)), [filtros]);
-  const semana = filtros.agrupar === "week";
+  // de la respuesta, no del filtro: mientras llega la nueva, los períodos viejos se siguen leyendo con su agrupación
+  const semana = data?.groupBy === "week";
   const rows = data?.rows ?? [];
   const valor = (r: AnalisisPacks["rows"][number]) => (medida === "PACKS" ? r.quantity : r.amount);
   const formato = medida === "PACKS" ? (n: number) => String(n) : pesos;
