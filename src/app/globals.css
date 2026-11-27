@@ -132,3 +132,13 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   .feedback-toast-in, .feedback-toast-out { animation-duration: 1ms; }
   .feedback-loader-bar > div { animation: none; width: 100%; opacity: 0.6; }
 }
+
+/* Flecha propia en los select: la nativa queda pegada al borde; esta respeta el mismo margen que el texto (px-2.5). */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236F6257' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  background-size: 0.875rem;
+  padding-right: 1.875rem;
+}
