@@ -3,19 +3,14 @@
 import { useState } from "react";
 import { ApiErrorBanner, Barras, ListTable, Tag, selectCls, type Columna, type Tone } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { AnalysisEvent, AnalysisEvents, AnalysisProductionCost, CostDriver, CostDrivers, VersionAt as VersionEn } from "@/lib/api.gen";
+import type { AnalysisEvent, AnalysisEvents, EventKindLabel, AnalysisProductionCost, CostDriver, CostDrivers, VersionAt as VersionEn } from "@/lib/api.gen";
 import { formatDate } from "@/lib/dateUtils";
 import { elegido } from "@/lib/analisis";
 import { useApiResource } from "@/lib/useApi";
 import Seccion, { consulta, pesos, type Filtros } from "./Seccion";
 
-const TIPOS: Record<string, { texto: string; tono: Tone }> = {
-  composition: { texto: "Composición", tono: "info" },
-  recipe: { texto: "Receta", tono: "warning" },
-  pack_price: { texto: "Precio del pack", tono: "neutral" },
-  charged_price: { texto: "Precio cobrado", tono: "solid" },
-  supply_price: { texto: "Precio de insumo", tono: "danger" },
-};
+// el nombre y la descripción de cada tipo vienen de /analysis/event-kinds; acá solo el color
+const TONO: Record<string, Tone> = { composition: "info", recipe: "warning", pack_price: "neutral", charged_price: "solid", supply_price: "danger" };
 
 function detalle(e: AnalysisEvent) {
   const precio = e.before !== null && e.after !== null ? ` · ${pesos(e.before)} → ${pesos(e.after)}` : "";
@@ -32,11 +27,13 @@ function detalle(e: AnalysisEvent) {
 /** ¿Por qué cambió? Lo que movió a los packs en el período y qué explica que una producción costara distinto. */
 export default function PorQue({ filtros, producciones }: { filtros: Filtros; producciones: AnalysisProductionCost[] }) {
   const { data, error } = useApiResource(() => api.getOne<AnalysisEvents>("/analysis/events", consulta(filtros)), [filtros]);
+  const { data: tipos } = useApiResource(() => api.getOne<EventKindLabel[]>("/analysis/event-kinds", undefined, { quiet: true }), []);
+  const tipo = (code: string) => tipos?.find((t) => t.code === code);
   const [abierto, setAbierto] = useState<number | null>(null); // versionId: estable aunque cambien los filtros
   const eventos = (data?.events ?? []).map((e, i) => ({ ...e, i }));
   const columnas: Columna<(typeof eventos)[number]>[] = [
     { key: "fecha", header: "FECHA", className: "font-mono whitespace-nowrap text-text-secondary", render: (e) => formatDate(e.date) },
-    { key: "tipo", header: "TIPO", className: "whitespace-nowrap", render: (e) => <Tag tone={TIPOS[e.kind]?.tono ?? "neutral"}>{TIPOS[e.kind]?.texto ?? e.kind}</Tag> },
+    { key: "tipo", header: "TIPO", className: "whitespace-nowrap", render: (e) => <span title={tipo(e.kind)?.description}><Tag tone={TONO[e.kind] ?? "neutral"}>{tipo(e.kind)?.name ?? e.kind}</Tag></span> },
     { key: "detalle", header: "QUÉ CAMBIÓ", className: "text-text-body", render: detalle },
   ];
 

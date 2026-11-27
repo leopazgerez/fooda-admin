@@ -6,10 +6,10 @@ import Topbar from "@/components/layout/Topbar";
 import { ApiErrorBanner, Card, CardHead, ListTable, PageHead, Segmented, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { BranchResponse, CustomerResponse, SaleResponse as VentaVista, SettingsResponse, StockResponse } from "@/lib/api.gen";
-import { MEDIO_PAGO, TIPO_VENTA, etiqueta } from "@/lib/etiquetas";
+import { etiqueta, mapaDe } from "@/lib/etiquetas";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
-import { useApiResource, useOptions, useReloadOnWrite } from "@/lib/useApi";
+import { useApiResource, useOptions, useReloadOnWrite, useLista } from "@/lib/useApi";
 import PagoPacksPanel from "./PagoPacksPanel";
 import VentaDetalle from "./VentaDetalle";
 import VentaPanel from "./VentaPanel";
@@ -18,7 +18,7 @@ import { AnimatePresence } from "motion/react";
 const TODAS = "TODAS";
 const sum = (vs: VentaVista[], k: "total" | "packs" | "profit") => vs.reduce((a, v) => a + v[k], 0);
 
-const columnas: Columna<VentaVista>[] = [
+const columnasDe = (TIPO_VENTA: Record<string, string>, MEDIO_PAGO: Record<string, string>): Columna<VentaVista>[] => [
   { key: "fecha", header: "FECHA", className: "font-mono whitespace-nowrap", render: (v) => <>
     <span className="text-text-secondary">{formatDate(v.date)}</span>
     <span className="block text-[10px] text-text-muted font-body">{v.branch}</span>
@@ -51,6 +51,9 @@ export default function VentasPage() {
   ]), []);
   useReloadOnWrite(reload);
   const { options: sedes } = useOptions<BranchResponse>("/branches");
+  const tiposVenta = useLista("sale-types");
+  const medios = useLista("payment-methods");
+  const columnas = columnasDe(mapaDe(tiposVenta), mapaDe(medios));
 
   const [ventas, stock, parametros, clientes] = data ?? [[], { rows: [], byBranch: [] }, null, []];
   const mes = toLocalISODate().slice(0, 7);

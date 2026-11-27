@@ -8,7 +8,8 @@ import type { DishResponse as PlatoVista, PackResponse as PackVista, RecipeLineR
 import type { Insumo as InsumoVista } from "@/lib/apiTypes";
 import { normalizar } from "@/lib/buscar";
 import { money } from "@/lib/format";
-import { useApiResource, useReloadOnWrite, vigente } from "@/lib/useApi";
+import { opcionesDe } from "@/lib/etiquetas";
+import { useApiResource, useLista, useReloadOnWrite, vigente } from "@/lib/useApi";
 import { AnimatePresence } from "motion/react";
 
 export default function PlatosTab() {
@@ -45,6 +46,7 @@ export default function PlatosTab() {
 function PlatoPanel({ plato: abierto, insumos, onClose }: { plato: PlatoVista | null; insumos: InsumoVista[]; onClose: () => void }) {
   // el registro tal como se abrió: base del PATCH y su version (si otra pestaña lo cambió, 409 y no se pisa)
   const [plato] = useState(abierto);
+  const unidades = useLista("units"); // columna angosta: el código, con el nombre de la API al pasar el mouse
   const [nombre, setNombre] = useState(plato?.name ?? "");
   const [receta, setReceta] = useState<LineaReceta[]>(plato?.recipe.map((l) => ({ ...l })) ?? []);
   const [busy, setBusy] = useState(false);
@@ -97,7 +99,7 @@ function PlatoPanel({ plato: abierto, insumos, onClose }: { plato: PlatoVista | 
               </select>
               <input type="number" min={0} value={l.quantity} aria-label="Cantidad" onChange={(e) => set(i, { quantity: Math.max(0, Number(e.target.value) || 0) })} className={`${inputCls} font-mono text-right`} />
               <select value={l.unit} aria-label="Unidad" onChange={(e) => set(i, { unit: e.target.value })} className={selectCls}>
-                {(["g", "ml", "u"] as const).map((u) => <option key={u} value={u}>{u}</option>)}
+                {opcionesDe(unidades, { actual: l.unit }).map((u) => <option key={u.value} value={u.value} title={u.label}>{u.value}</option>)}
               </select>
               <input type="number" min={1} value={l.portions} aria-label="Porciones" onChange={(e) => set(i, { portions: Math.max(1, Number(e.target.value) || 1) })} className={`${inputCls} font-mono text-right`} />
               <button type="button" aria-label="Quitar" onClick={() => setReceta(receta.filter((_, j) => j !== i))}

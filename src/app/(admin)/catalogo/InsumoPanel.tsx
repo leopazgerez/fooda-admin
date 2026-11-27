@@ -7,9 +7,9 @@ import { api, ApiError } from "@/lib/api";
 import type { PriceResponse as PrecioInsumo, Supplier as Proveedor } from "@/lib/api.gen";
 import type { Insumo as InsumoVista } from "@/lib/apiTypes";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
-import { REGLA_COMPUESTO, UNIDAD, etiqueta, opciones } from "@/lib/etiquetas";
+import { REGLA_COMPUESTO, etiqueta, opcionesDe } from "@/lib/etiquetas";
 import { money } from "@/lib/format";
-import { useApiResource } from "@/lib/useApi";
+import { useApiResource, useLista } from "@/lib/useApi";
 
 
 /** Alta o edición de insumo. El precio se carga como un precio nuevo con fecha (el historial se conserva). */
@@ -21,6 +21,7 @@ export default function InsumoPanel({ insumo: abierto, proveedores, onClose }: {
     content: insumo?.content ?? 1000, gramsPerUnit: insumo?.gramsPerUnit ?? 0, presentation: insumo?.presentation ?? "", active: insumo?.active ?? true,
   });
   const [precioInicial, setPrecioInicial] = useState(0);
+  const unidades = useLista("units");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const bad = (k: string) => (error instanceof ApiError && error.field === k ? campoErr : "");
@@ -69,7 +70,7 @@ export default function InsumoPanel({ insumo: abierto, proveedores, onClose }: {
           </Field>
           <Field label="UNIDAD">
             <select value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })} className={`${selectCls} ${bad("unit")}`}>
-              {opciones(UNIDAD).map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+              {opcionesDe(unidades, { actual: f.unit }).map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
             </select>
           </Field>
           <Field label={`CONTENIDO DEL ENVASE (${f.unit})`} hint="Cuánto trae lo que comprás: el costo por unidad sale de acá">

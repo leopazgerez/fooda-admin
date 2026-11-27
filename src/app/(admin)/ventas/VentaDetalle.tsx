@@ -5,7 +5,8 @@ import { ApiErrorBanner, BotonBaja, FormPanel, btnSecondary } from "@/components
 import { api } from "@/lib/api";
 import type { SaleResponse as VentaVista } from "@/lib/api.gen";
 import { formatDate } from "@/lib/dateUtils";
-import { MEDIO_PAGO, TIPO_VENTA, etiqueta } from "@/lib/etiquetas";
+import { etiqueta, mapaDe } from "@/lib/etiquetas";
+import { useLista } from "@/lib/useApi";
 import { money } from "@/lib/format";
 
 function Dato({ label, children }: { label: string; children: React.ReactNode }) {
@@ -20,6 +21,8 @@ function Dato({ label, children }: { label: string; children: React.ReactNode })
 /** Venta en solo lectura, con la opción de anularla (los packs vuelven al stock). */
 export default function VentaDetalle({ venta: v, onClose }: { venta: VentaVista; onClose: () => void }) {
   const [error, setError] = useState<unknown>(null);
+  const TIPO_VENTA = mapaDe(useLista("sale-types"));
+  const MEDIO_PAGO = mapaDe(useLista("payment-methods"));
   return (
     <FormPanel title={`Venta del ${formatDate(v.date)}`} onClose={onClose} footer={<>
       <BotonBaja label="Anular venta" title="¿Anular esta venta?" confirmLabel="Anular venta"

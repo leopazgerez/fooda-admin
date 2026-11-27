@@ -6,10 +6,10 @@ import Topbar from "@/components/layout/Topbar";
 import { ApiErrorBanner, BotonBaja, Card, CardHead, ConfirmModal, ListTable, PageHead, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { ExpenseResponse as Gasto, MonthlyResponse as MesFinanzas, SettingsResponse as Parametros } from "@/lib/api.gen";
-import { MEDIO_PAGO, etiqueta } from "@/lib/etiquetas";
+import { etiqueta, mapaDe } from "@/lib/etiquetas";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
-import { useApiResource, useReloadOnWrite, vigente } from "@/lib/useApi";
+import { useApiResource, useLista, useReloadOnWrite, vigente } from "@/lib/useApi";
 import GastoPanel from "./GastoPanel";
 import { AnimatePresence } from "motion/react";
 
@@ -57,6 +57,7 @@ export default function FinanzasPage() {
       ? <button type="button" onClick={() => setCerrar(m.month)} className={`${btnSecondary} py-1 text-[11px]`}>Cerrar mes</button> : <Tag>En curso</Tag> },
   ];
 
+  const MEDIO_PAGO = mapaDe(useLista("payment-methods"));
   const colGastos: Columna<Gasto>[] = [
     { key: "fecha", header: "FECHA", className: "font-mono whitespace-nowrap text-text-secondary", render: (g) => formatDate(g.date) },
     { key: "detalle", header: "DETALLE", className: "text-brand-dark", render: (g) => <>

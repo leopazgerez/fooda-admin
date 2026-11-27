@@ -21,7 +21,7 @@ export default function Insumos({ filtros }: { filtros: Filtros }) {
     { key: "impacto", header: "POR PACK", hideBelow: "md", className: "text-text-secondary text-[11px]",
       render: (s) => s.impactPerPack.length
         ? s.impactPerPack.map((i) => `${i.pack} ${i.amount > 0 ? "+" : ""}${pesos(i.amount)}`).join(" · ")
-        : "No entra directo en recetas (puede ser parte de un compuesto)" },
+        : "No se usa en las recetas de la última producción" },
   ];
 
   return (

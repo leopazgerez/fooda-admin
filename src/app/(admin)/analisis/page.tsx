@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Boxes, Percent, TrendingUp, Wallet } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
-import { Field, PageHead, Stat, inputCls, selectCls } from "@/components/ui";
-import { api } from "@/lib/api";
+import { Field, PageHead, Stat, campoErr, inputCls, selectCls } from "@/components/ui";
+import { ApiError, api } from "@/lib/api";
 import type { AnalysisSummary, BranchResponse, PackMargins } from "@/lib/api.gen";
 import { fechaParaFiltro, variacion } from "@/lib/analisis";
 import { formatDate } from "@/lib/dateUtils";
@@ -42,9 +42,15 @@ export default function AnalisisPage() {
   };
   const porDefecto = (iso?: string) => (iso ? `Vacío: ${formatDate(iso)}` : undefined);
   const { options: sedes } = useOptions<BranchResponse>("/branches");
-  const resumen = useApiResource(() => api.getOne<AnalysisSummary>("/analysis/summary", consulta(filtros)), [filtros]);
-  const margen = useApiResource(() => api.getOne<PackMargins>("/analysis/packs/margin", consulta(filtros)), [filtros]);
-  const r = resumen.data;
+  // desde > hasta: no se consulta (la API respondería 400 en `from` en cada sección)
+  const invertido = !!filtros.desde && !!filtros.hasta && filtros.desde > filtros.hasta;
+  const resumen = useApiResource(() => invertido ? Promise.resolve(null)
+    : api.getOne<AnalysisSummary>("/analysis/summary", consulta(filtros)), [filtros]);
+  // con una sola fecha puesta, el otro extremo es el default de la API: el rechazo llega por el resumen
+  const rangoMal = invertido || (resumen.error instanceof ApiError && resumen.error.field === "from");
+  const margen = useApiResource(() => rangoMal ? Promise.resolve(null)
+    : api.getOne<PackMargins>("/analysis/packs/margin", consulta(filtros)), [filtros, rangoMal]);
+  const r = rangoMal ? null : resumen.data;
 
   return (
     <>
@@ -52,7 +58,7 @@ export default function AnalisisPage() {
       <main className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 w-full min-w-0">
         <PageHead title="Análisis de packs" subtitle="Qué se vende, dónde, cuánto deja y por qué cambió. Sin uso interno ni pagos con packs" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl">
-          <Field label="DESDE" hint={!fechas.desde ? porDefecto(r?.from) : undefined}><input type="date" value={fechas.desde} onChange={(e) => fecha("desde", e.target.value)} className={inputCls} /></Field>
+          <Field label="DESDE" hint={!fechas.desde ? porDefecto(r?.from) : undefined}><input type="date" value={fechas.desde} onChange={(e) => fecha("desde", e.target.value)} className={`${inputCls} ${rangoMal ? campoErr : ""}`} /></Field>
           <Field label="HASTA" hint={!fechas.hasta ? porDefecto(r?.to) : undefined}><input type="date" value={fechas.hasta} onChange={(e) => fecha("hasta", e.target.value)} className={inputCls} /></Field>
           <Field label="AGRUPAR POR">
             <select value={filtros.agrupar} onChange={(e) => set({ agrupar: e.target.value as Filtros["agrupar"] })} className={selectCls}>
@@ -67,6 +73,10 @@ export default function AnalisisPage() {
           </Field>
         </div>
 
+        {rangoMal ? (
+          <p className="text-xs text-danger">{invertido || !(resumen.error instanceof ApiError)
+            ? "La fecha desde no puede ser posterior a la fecha hasta." : resumen.error.message}</p>
+        ) : <>
         <Seccion titulo="RESUMEN" pregunta={r ? `Comparado con el ${r.previousFrom.split("-").reverse().join("/")} al ${r.previousTo.split("-").reverse().join("/")}` : "Comparado con el período anterior de igual duración"}
           error={resumen.error} cargando={!r && !resumen.error}
           vacio={!!r && !r.current.packs && !r.previous.packs && "Sin ventas en el período ni en el anterior."}>
@@ -88,6 +98,7 @@ export default function AnalisisPage() {
         <CostoGanancia data={margen.data} error={margen.error} />
         <PorQue filtros={filtros} producciones={margen.data?.productions ?? []} />
         <Insumos filtros={filtros} />
+        </>}
       </main>
     </>
   );

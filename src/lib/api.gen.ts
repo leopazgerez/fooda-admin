@@ -596,7 +596,7 @@ export interface paths {
         patch: operations["rename"];
         trace?: never;
     };
-    "/api/expenses/{id}": {
+    "/api/lookups/{type}/{code}": {
         parameters: {
             query?: never;
             header?: never;
@@ -606,13 +606,13 @@ export interface paths {
         get: operations["get_6"];
         put?: never;
         post?: never;
-        delete: operations["delete_4"];
+        delete?: never;
         options?: never;
         head?: never;
         patch: operations["update_5"];
         trace?: never;
     };
-    "/api/dishes/{id}": {
+    "/api/expenses/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -622,13 +622,13 @@ export interface paths {
         get: operations["get_7"];
         put?: never;
         post?: never;
-        delete: operations["delete_5"];
+        delete: operations["delete_4"];
         options?: never;
         head?: never;
         patch: operations["update_6"];
         trace?: never;
     };
-    "/api/customers/{id}": {
+    "/api/dishes/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -638,13 +638,13 @@ export interface paths {
         get: operations["get_8"];
         put?: never;
         post?: never;
-        delete: operations["delete_6"];
+        delete: operations["delete_5"];
         options?: never;
         head?: never;
         patch: operations["update_7"];
         trace?: never;
     };
-    "/api/branches/{id}": {
+    "/api/customers/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -654,10 +654,26 @@ export interface paths {
         get: operations["get_9"];
         put?: never;
         post?: never;
-        delete: operations["delete_7"];
+        delete: operations["delete_6"];
         options?: never;
         head?: never;
         patch: operations["update_8"];
+        trace?: never;
+    };
+    "/api/branches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_10"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_7"];
+        options?: never;
+        head?: never;
+        patch: operations["update_9"];
         trace?: never;
     };
     "/api/stock": {
@@ -683,7 +699,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_10"];
+        get: operations["get_11"];
         put?: never;
         post?: never;
         delete: operations["annul"];
@@ -699,7 +715,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_11"];
+        get: operations["get_12"];
         put?: never;
         post?: never;
         delete: operations["annul_1"];
@@ -715,7 +731,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_12"];
+        get: operations["get_13"];
         put?: never;
         post?: never;
         delete: operations["annul_2"];
@@ -763,7 +779,23 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_13"];
+        get: operations["get_14"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lookups/{type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -795,7 +827,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_14"];
+        get: operations["get_15"];
         put?: never;
         post?: never;
         delete?: never;
@@ -924,6 +956,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analysis/event-kinds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["eventKinds"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1465,6 +1513,15 @@ export interface components {
         };
         RenameRequest: {
             fullName: string;
+        };
+        LookupItem: {
+            code: string;
+            name: string;
+            /** Format: int32 */
+            sortOrder: number;
+            active: boolean;
+            /** Format: int64 */
+            version: number;
         };
         PageUserResponse: {
             items: components["schemas"]["UserResponse"][];
@@ -2027,6 +2084,11 @@ export interface components {
             to: string;
             events: components["schemas"]["AnalysisEvent"][];
         };
+        EventKindLabel: {
+            code: string;
+            name: string;
+            description: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -2082,6 +2144,7 @@ export type RefreshRequest = components['schemas']['RefreshRequest'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type UpdateUserRequest = components['schemas']['UpdateUserRequest'];
 export type RenameRequest = components['schemas']['RenameRequest'];
+export type LookupItem = components['schemas']['LookupItem'];
 export type PageUserResponse = components['schemas']['PageUserResponse'];
 export type PageTransferResponse = components['schemas']['PageTransferResponse'];
 export type PageSupplyResponse = components['schemas']['PageSupplyResponse'];
@@ -2141,6 +2204,7 @@ export type PackMarginRow = components['schemas']['PackMarginRow'];
 export type PackMargins = components['schemas']['PackMargins'];
 export type AnalysisEvent = components['schemas']['AnalysisEvent'];
 export type AnalysisEvents = components['schemas']['AnalysisEvents'];
+export type EventKindLabel = components['schemas']['EventKindLabel'];
 export type $defs = Record<string, never>;
 export interface operations {
     get: {
@@ -3688,7 +3752,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                type: string;
+                code: string;
             };
             cookie?: never;
         };
@@ -3700,28 +3765,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ExpenseResponse"];
+                    "*/*": components["schemas"]["LookupItem"];
                 };
-            };
-        };
-    };
-    delete_4: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };
@@ -3730,7 +3775,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                type: string;
+                code: string;
             };
             cookie?: never;
         };
@@ -3748,7 +3794,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ExpenseResponse"];
+                    "*/*": components["schemas"]["LookupItem"];
                 };
             };
         };
@@ -3770,12 +3816,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["DishResponse"];
+                    "*/*": components["schemas"]["ExpenseResponse"];
                 };
             };
         };
     };
-    delete_5: {
+    delete_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -3818,7 +3864,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["DishResponse"];
+                    "*/*": components["schemas"]["ExpenseResponse"];
                 };
             };
         };
@@ -3840,12 +3886,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["CustomerResponse"];
+                    "*/*": components["schemas"]["DishResponse"];
                 };
             };
         };
     };
-    delete_6: {
+    delete_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -3888,12 +3934,82 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["CustomerResponse"];
+                    "*/*": components["schemas"]["DishResponse"];
                 };
             };
         };
     };
     get_9: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerResponse"];
+                };
+            };
+        };
+    };
+    delete_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_8: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerResponse"];
+                };
+            };
+        };
+    };
+    get_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -3935,7 +4051,7 @@ export interface operations {
             };
         };
     };
-    update_8: {
+    update_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -3987,7 +4103,7 @@ export interface operations {
             };
         };
     };
-    get_10: {
+    get_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -4029,7 +4145,7 @@ export interface operations {
             };
         };
     };
-    get_11: {
+    get_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -4071,7 +4187,7 @@ export interface operations {
             };
         };
     };
-    get_12: {
+    get_13: {
         parameters: {
             query?: never;
             header?: never;
@@ -4157,7 +4273,7 @@ export interface operations {
             };
         };
     };
-    get_13: {
+    get_14: {
         parameters: {
             query?: never;
             header?: never;
@@ -4173,6 +4289,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PackagingStatus"];
+                };
+            };
+        };
+    };
+    list_13: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LookupItem"][];
                 };
             };
         };
@@ -4197,7 +4335,7 @@ export interface operations {
             };
         };
     };
-    get_14: {
+    get_15: {
         parameters: {
             query?: never;
             header?: never;
@@ -4402,6 +4540,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AnalysisEvents"];
+                };
+            };
+        };
+    };
+    eventKinds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EventKindLabel"][];
                 };
             };
         };

@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { ApiErrorBanner, Card, CardHead, ConfirmModal, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, inputCls, type Columna } from "@/components/ui";
+import { ApiErrorBanner, Card, CardHead, ConfirmModal, Field, FormPanel, ListTable, Tag, btnPrimary, btnSecondary, campoMal, inputCls, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { SettingsResponse as Parametros } from "@/lib/api.gen";
-import { useApiResource, useReloadOnWrite } from "@/lib/useApi";
+import type { LookupItem, SettingsResponse as Parametros } from "@/lib/api.gen";
+import { useApiResource, useGuardar, useReloadOnWrite, type TipoLista } from "@/lib/useApi";
 import { AnimatePresence } from "motion/react";
 
 type Lista = "expenseTypes" | "saleReasons";
@@ -34,6 +34,7 @@ export default function ListasTab() {
             onRowClick={(x) => { if (!(l.k === "expenseTypes" && x.valor === "fijo")) setEdit({ lista: l.k, i: x.i }); }} empty="Vacía." />
         </Card>
       ))}
+      {LOOKUPS.map((l) => <ListaApi key={l.tipo} {...l} />)}
       <AnimatePresence>{edit && data && <ItemForm ajustes={data} lista={edit.lista} i={edit.i} onClose={() => setEdit(null)} />}</AnimatePresence>
     </div>
   );
@@ -79,6 +80,70 @@ function ItemForm({ ajustes, lista, i, onClose }: { ajustes: Parametros; lista: 
       {i !== null && <ConfirmModal isOpen={borrar} onClose={() => setBorrar(false)} itemName={valores[i]} isLoading={busy}
         description="Deja de ofrecerse en los formularios. Los registros que ya lo usan no cambian."
         onConfirm={() => guardar(valores.filter((_, j) => j !== i), "Valor eliminado.")} />}
+    </FormPanel>
+  );
+}
+
+// Listas de la API (/lookups): los códigos los usa la lógica, así que no hay alta ni baja; se edita cómo se ven.
+const LOOKUPS: { tipo: TipoLista; titulo: string; caption: string }[] = [
+  { tipo: "sale-types", titulo: "TIPOS DE VENTA", caption: "Uso interno y pago con packs se cargan desde \"Pagar con packs\"" },
+  { tipo: "payment-methods", titulo: "MEDIOS DE PAGO", caption: "\"Packs\" es solo para gastos pagados con packs" },
+  { tipo: "units", titulo: "UNIDADES", caption: "En las recetas se ve el código; el nombre, al pasar el mouse" },
+];
+
+function ListaApi({ tipo, titulo, caption }: { tipo: TipoLista; titulo: string; caption: string }) {
+  const [edit, setEdit] = useState<LookupItem | null>(null);
+  const { data, error, reload } = useApiResource(() => api.getOne<LookupItem[]>(`/lookups/${tipo}`), [tipo]);
+  useReloadOnWrite(reload);
+  const items = data ?? [];
+  const abierto = edit && (items.find((x) => x.code === edit.code) ?? edit); // por código: estas listas no tienen id
+  const columnas: Columna<LookupItem>[] = [
+    { key: "nombre", header: "NOMBRE", className: "text-brand-dark", render: (x) => <>
+      {x.name}{!x.active && <span className="ml-2"><Tag>Oculto en formularios</Tag></span>}
+    </> },
+    { key: "codigo", header: "CÓDIGO", hideBelow: "sm", className: "font-mono text-text-muted", render: (x) => x.code },
+    { key: "orden", header: "ORDEN", align: "right", className: "font-mono text-text-secondary", render: (x) => x.sortOrder },
+  ];
+  return (
+    <Card className="p-4 flex flex-col gap-3">
+      <CardHead title={titulo} caption={caption} />
+      <ApiErrorBanner error={error} />
+      <ListTable rows={items} rowKey={(x) => x.code} columns={columnas} onRowClick={setEdit} empty="Vacía." />
+      <AnimatePresence>{abierto && <LookupForm tipo={tipo} item={abierto} onClose={() => setEdit(null)} />}</AnimatePresence>
+    </Card>
+  );
+}
+
+function LookupForm({ tipo, item: abierto, onClose }: { tipo: TipoLista; item: LookupItem; onClose: () => void }) {
+  const [item] = useState(abierto); // base del PATCH y su version, tal como se abrió
+  const [f, setF] = useState({ name: item.name, sortOrder: item.sortOrder, active: item.active });
+  const { busy, error, run } = useGuardar(onClose);
+  const submit = (e: React.SubmitEvent) => {
+    e.preventDefault();
+    const todo = { ...f, name: f.name.trim() };
+    const cambios = Object.fromEntries(Object.entries(todo).filter(([k, v]) => v !== item[k as keyof typeof todo]));
+    if (!Object.keys(cambios).length) return onClose();
+    run(() => api.patch(`/lookups/${tipo}/${item.code}`, { ...cambios, version: item.version }, { silent: true, success: `${todo.name} actualizado.` }));
+  };
+  return (
+    <FormPanel title={item.name} onClose={onClose} footer={<>
+      <button type="button" onClick={onClose} className={btnSecondary}>Cancelar</button>
+      <button type="submit" form="lookup-form" disabled={busy || !f.name.trim()} className={btnPrimary}>{busy ? "Guardando…" : "Guardar"}</button>
+    </>}>
+      <form id="lookup-form" noValidate onSubmit={submit} className="flex flex-col gap-4">
+        <ApiErrorBanner error={error} />
+        <Field label="NOMBRE" hint={<>Código <span className="font-mono">{item.code}</span>: no cambia, lo usa el sistema</>}>
+          <input value={f.name} maxLength={60} onChange={(e) => setF({ ...f, name: e.target.value })} className={`${inputCls} ${campoMal(error, "name")}`} />
+        </Field>
+        <Field label="ORDEN" hint="Menor va primero en las listas">
+          <input type="number" value={f.sortOrder} onChange={(e) => setF({ ...f, sortOrder: Math.floor(Number(e.target.value) || 0) })}
+            className={`${inputCls} font-mono ${campoMal(error, "sortOrder")}`} />
+        </Field>
+        <label className="flex items-center gap-2 text-xs text-text-body">
+          <input type="checkbox" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} />
+          Ofrecer en los formularios (lo ya cargado sigue mostrando su nombre)
+        </label>
+      </form>
     </FormPanel>
   );
 }

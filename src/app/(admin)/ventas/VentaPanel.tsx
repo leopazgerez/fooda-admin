@@ -5,16 +5,17 @@ import { Plus, Trash2 } from "lucide-react";
 import { ApiErrorBanner, Field, FormPanel, btnPrimary, btnSecondary, inputCls, selectCls } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { BranchResponse as SedeOpcion, CustomerResponse as ClienteOpcion, SaleResponse as VentaVista, SettingsResponse as Parametros, StockRow as FilaStock } from "@/lib/api.gen";
-import { MEDIO_PAGO, TIPO_VENTA, opciones } from "@/lib/etiquetas";
+import { opcionesDe } from "@/lib/etiquetas";
+import { useLista } from "@/lib/useApi";
 import { toLocalISODate } from "@/lib/dateUtils";
 import { feedback } from "@/lib/feedback";
 import { money } from "@/lib/format";
 import ClientePicker from "./ClientePicker";
 
-/** Medios con los que entra plata ("packs" es solo para gastos pagados con packs). */
-export const MEDIOS = opciones(MEDIO_PAGO).filter((m) => m.value !== "packs");
-// los otros tipos (uso interno, pago con packs) van por "Pagar con packs"
-const TIPOS_VENTA = opciones(TIPO_VENTA).filter((t) => ["retail", "wholesale", "consignment"].includes(t.value));
+/** Medios con los que no entra plata: "packs" es solo para gastos pagados con packs. */
+export const SIN_MEDIOS = ["packs"];
+// uso interno y pago con packs van por "Pagar con packs" (tienen su propio flujo)
+const SIN_TIPOS = ["internal_use", "paid_with_packs"];
 export const entero = (v: string) => Math.max(0, Math.floor(Number(v) || 0));
 export const clave = (f: Pick<FilaStock, "productionId" | "packId">) => `${f.productionId}|${f.packId}`;
 
@@ -80,6 +81,8 @@ export default function VentaPanel({ sedes, filas, clientes, parametros, onClose
   const [tipo, setTipo] = useState("retail");
   const [motivo, setMotivo] = useState("");
   const [medio, setMedio] = useState("transfer");
+  const tiposVenta = useLista("sale-types");
+  const medios = useLista("payment-methods");
   const [descuento, setDescuento] = useState(0);
   const [envio, setEnvio] = useState(0);
   const [fecha, setFecha] = useState(toLocalISODate());
@@ -130,12 +133,12 @@ export default function VentaPanel({ sedes, filas, clientes, parametros, onClose
         <div className="grid grid-cols-2 gap-3">
           <Field label="TIPO">
             <select value={tipo} onChange={(e) => setTipo(e.target.value)} className={selectCls}>
-              {TIPOS_VENTA.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {opcionesDe(tiposVenta, { sin: SIN_TIPOS, actual: tipo }).map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </Field>
           <Field label="MEDIO DE PAGO">
             <select value={medio} onChange={(e) => setMedio(e.target.value)} className={selectCls}>
-              {MEDIOS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+              {opcionesDe(medios, { sin: SIN_MEDIOS, actual: medio }).map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
           </Field>
           <Field label="DESCUENTO ($)"><input type="number" min={0} value={descuento} onChange={(e) => setDescuento(entero(e.target.value))} className={`${inputCls} font-mono`} /></Field>

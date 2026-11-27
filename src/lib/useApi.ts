@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, API_WRITE_EVENT } from "./api";
 import type { ListQuery } from "./apiQuery";
+import type { LookupItem } from "./api.gen";
 
 interface Result<T> { key: string; data: T | null; error: ApiError | null }
 
@@ -74,4 +75,12 @@ export function useGuardar(onClose?: () => void) {
 export function vigente<T extends { id: number }, O>(lista: T[], abierto: T | O): T | O {
   if (!abierto || typeof abierto !== "object" || !("id" in abierto)) return abierto;
   return lista.find((x) => x.id === (abierto as T).id) ?? abierto;
+}
+
+export type TipoLista = "sale-types" | "payment-methods" | "units";
+
+/** Valores de una lista de /api/lookups (nombres editables en Ajustes › Listas). Vacía mientras carga. */
+export function useLista(tipo: TipoLista): LookupItem[] {
+  const { data } = useApiResource(() => api.getOne<LookupItem[]>(`/lookups/${tipo}`, undefined, { quiet: true }), [tipo]);
+  return data ?? [];
 }

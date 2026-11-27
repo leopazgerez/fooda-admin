@@ -41,7 +41,7 @@ npm run api:types  # regenera src/lib/api.gen.ts desde el OpenAPI (con fooda-api
 | Finanzas y caja | `/finanzas` | Resumen por mes, gastos (los manuales se pueden eliminar) y cierre de mes (fija el indirecto por pack; un mes cerrado se puede reabrir) |
 | Catálogo | `/catalogo` | Insumos (con historial de precios), platos (recetas), packs (precio y versiones de composición) y proveedores |
 | Análisis | `/analisis` | Resumen contra el período anterior; qué se vende y dónde; costo, ganancia y margen por pack; por qué cambió (menús, recetas, precios) y qué insumos explican el costo de cada producción; insumos que más cambiaron. Filtros de fechas, mes o semana y sede |
-| Ajustes | `/ajustes` | Sedes (capacidad, umbrales, envío), parámetros, reservas y listas (tipos de gasto, motivos) |
+| Ajustes | `/ajustes` | Sedes (capacidad, umbrales, envío), parámetros, reservas y listas: tipos de gasto y motivos, y los nombres, orden y visibilidad de tipos de venta, medios de pago y unidades (`/lookups`, que usan todas las pantallas en lugar de textos fijos) |
 | Mi cuenta | (tocar el nombre en el menú) | Cambiar el nombre y la contraseña |
 
 Insumos, platos, packs, proveedores, clientes y sedes se eliminan desde su panel; si están en uso la API no lo deja y el panel muestra por qué.

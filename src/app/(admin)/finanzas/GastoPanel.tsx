@@ -6,13 +6,16 @@ import { api, ApiError } from "@/lib/api";
 import type { ExpenseResponse as Gasto } from "@/lib/api.gen";
 import { toLocalISODate } from "@/lib/dateUtils";
 import { money } from "@/lib/format";
-import { MEDIOS } from "../ventas/VentaPanel";
+import { opcionesDe } from "@/lib/etiquetas";
+import { useLista } from "@/lib/useApi";
+import { SIN_MEDIOS } from "../ventas/VentaPanel";
 
 
 /** Alta o edición de un gasto. Los generados automáticamente (compra o pago con packs) se muestran en solo lectura. */
 export default function GastoPanel({ gasto: abierto, tipos, onClose }: { gasto: Gasto | null; tipos: string[]; onClose: () => void }) {
   // el registro tal como se abrió: base del PATCH y su version (si otra pestaña lo cambió, 409 y no se pisa)
   const [gasto] = useState(abierto);
+  const medios = useLista("payment-methods");
   const auto = !!(gasto?.purchaseId || gasto?.saleId);
   const [f, setF] = useState({
     date: gasto?.date ?? toLocalISODate(), type: gasto?.type ?? tipos[0] ?? "", detail: gasto?.detail ?? "",
@@ -75,8 +78,7 @@ export default function GastoPanel({ gasto: abierto, tipos, onClose }: { gasto: 
             </Field>
             <Field label="MEDIO">
               <select value={f.method} onChange={(e) => setF({ ...f, method: e.target.value })} className={`${selectCls} ${bad("method")}`}>
-                {f.method === "packs" && <option value="packs">Packs</option>}
-                {MEDIOS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                {opcionesDe(medios, { sin: f.method === "packs" ? [] : SIN_MEDIOS, actual: f.method }).map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </Field>
           </div>
