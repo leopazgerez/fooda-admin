@@ -33,8 +33,8 @@ npm run api:types  # regenera src/lib/api.gen.ts desde el OpenAPI (con fooda-api
 | Menú | Ruta | Qué hace |
 |---|---|---|
 | Dashboard | `/dashboard` | Ventas, ganancia y caja del mes, stock por sede, avisos (compras pendientes, envases, cumpleaños, clientes para recontactar), ventas por pack y últimas producciones |
-| Compras | `/compras` | Lista de compras por proveedor que genera cada producción; al registrarla queda comprada y crea el gasto. También compras sueltas y estado de envases |
-| Producción | `/produccion` | Planificar (cuántos packs de cada uno), costo del lote calculado solo, recetario escalado para cocinar y cierre con reparto a sedes |
+| Compras | `/compras` | Lista de compras por proveedor que genera cada producción; al registrarla queda comprada y crea el gasto. También compras sueltas y estado de envases. Cada lista pendiente se puede copiar o bajar en PDF para llevar al súper |
+| Producción | `/produccion` | Planificar (cuántos packs de cada uno), costo del lote calculado solo, recetario escalado para cocinar, PDF con todas las listas de súper pendientes y cierre con reparto a sedes |
 | Inventario y traslados | `/stock` | Stock por sede y lote (FIFO), despachos entre sedes (mueven el stock en el acto) y ajustes |
 | Ventas | `/ventas` | Nueva venta (siempre cobrada completa), buscar o crear el cliente, y "Pagar con packs" (trueque o uso interno: descuenta stock sin tocar la caja) |
 | Clientes | `/clientes` | Ficha, historial de compras, recontactos y cumpleaños |

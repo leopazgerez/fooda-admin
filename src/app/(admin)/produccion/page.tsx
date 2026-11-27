@@ -2,14 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BookOpen, ChevronDown, ChevronRight, ClipboardPlus, PackageCheck, ShoppingCart } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronRight, ClipboardPlus, FileDown, PackageCheck, ShoppingCart } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
 import { ApiErrorBanner, Card, CardHead, ListTable, PageHead, Stat, Tag, btnPrimary, btnSecondary, tdCls, thCls, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { BranchResponse, PackResponse as PackVista, ProductionResponse as ProduccionResumen } from "@/lib/api.gen";
+import type { BranchResponse, PackResponse as PackVista, ProductionResponse as ProduccionResumen, ShoppingGroupResponse } from "@/lib/api.gen";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
 import { ESTADO_PRODUCCION, etiqueta } from "@/lib/etiquetas";
 import { money } from "@/lib/format";
+import { armarLista, nombreArchivo, pendientes } from "@/lib/listaSuper";
+import { descargarPdf } from "@/lib/listaSuperSalida";
 import { useApiResource, useOptions, useReloadOnWrite } from "@/lib/useApi";
 import { CerrarProduccionPanel, NuevaProduccionPanel, RecetarioPanel } from "./ProduccionPanels";
 import { AnimatePresence } from "motion/react";
@@ -89,7 +91,8 @@ function Detalle({ p, onRecetario }: { p: ProduccionResumen; onRecetario: () => 
   const ind = p.overhead;
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        {p.status === "planned" && <BotonListaSuper p={p} />}
         <button type="button" onClick={onRecetario} className={`${btnSecondary} py-1 text-[11px]`}><BookOpen className="w-3 h-3" /> Ver recetario</button>
       </div>
       <table className="w-full">
@@ -120,5 +123,17 @@ function Detalle({ p, onRecetario }: { p: ProduccionResumen; onRecetario: () => 
         {p.status === "planned" && <> Las compras de este lote están en <Link href="/compras" className="underline">Compras</Link>.</>}
       </p>
     </div>
+  );
+}
+
+/** PDF con las listas que faltan comprar (una página por proveedor). Sin pendientes no aparece. */
+function BotonListaSuper({ p }: { p: ProduccionResumen }) {
+  const { data, reload } = useApiResource(() => api.getOne<ShoppingGroupResponse[]>(`/productions/${p.id}/shopping-list`, undefined, { quiet: true }), [p.id]);
+  useReloadOnWrite(reload);
+  const grupos = pendientes(data ?? []);
+  if (!grupos.length) return null;
+  return (
+    <button type="button" onClick={() => descargarPdf(grupos.map((g) => armarLista(g, p)), nombreArchivo("lista-super", p.code))}
+      className={`${btnSecondary} py-1 text-[11px]`}><FileDown className="w-3 h-3" /> Lista de súper (PDF)</button>
   );
 }

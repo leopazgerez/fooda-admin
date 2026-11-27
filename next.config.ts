@@ -37,7 +37,8 @@ const nextConfig: NextConfig = {
   trailingSlash: true,
 
   // Dev only: allow opening `npm run dev` through an ngrok tunnel (the subdomain changes on every session)
-  allowedDevOrigins: ["*.ngrok-free.app"],
+  // más orígenes (ej. la IP de la red local para probar desde el celular) en DEV_ORIGINS de .env.local, separados por coma
+  allowedDevOrigins: ["*.ngrok-free.app", ...(process.env.DEV_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? [])],
 };
 
 export default nextConfig;

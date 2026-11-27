@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Box, ListChecks, ShoppingCart, Wallet } from "lucide-react";
+import { Box, Copy, FileDown, ListChecks, ShoppingCart, Wallet } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
 import { ApiErrorBanner, Card, CardHead, ListTable, PageHead, Segmented, Stat, Tag, btnPrimary, btnSecondary, type Columna } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { PackagingStatus as Envases, PurchaseResponse as CompraVista, Supplier, SupplyResponse } from "@/lib/api.gen";
+import type { DetailResponse, PackagingStatus as Envases, PurchaseResponse as CompraVista, ShoppingGroupResponse, Supplier, SupplyResponse } from "@/lib/api.gen";
 import { formatDate, toLocalISODate } from "@/lib/dateUtils";
 import { ESTADO_COMPRA, etiqueta } from "@/lib/etiquetas";
+import { feedback } from "@/lib/feedback";
 import { money } from "@/lib/format";
+import { armarLista, cargarPorId, grupoDeCompra, nombreArchivo, type ListaSuper } from "@/lib/listaSuper";
+import { copiarLista, descargarPdf } from "@/lib/listaSuperSalida";
 import { useApiResource, useOptions, useReloadOnWrite } from "@/lib/useApi";
 import CompraPanel from "./CompraPanel";
 import { AnimatePresence } from "motion/react";
@@ -28,6 +31,22 @@ export default function ComprasPage() {
   const [compras, envases] = data ?? [[], null];
   const mes = toLocalISODate().slice(0, 7);
   const porComprar = compras.filter((c) => c.status === "pending");
+  // listas precargadas: copiar en iOS tiene que correr en el mismo toque, sin esperar la red
+  const ids = [...new Set(porComprar.flatMap((c) => (c.productionId === null ? [] : [c.productionId])))].sort((a, b) => a - b);
+  // solo las producciones con compras pendientes (código y fecha para el encabezado + su lista)
+  const { data: listas, reload: recargarListas } = useApiResource(() => cargarPorId(ids, (id) => Promise.all([
+    api.getOne<DetailResponse>(`/productions/${id}`, undefined, { quiet: true }),
+    api.getOne<ShoppingGroupResponse[]>(`/productions/${id}/shopping-list`, undefined, { quiet: true }),
+  ])), [ids]);
+  useReloadOnWrite(recargarListas);
+  const listaDe = (c: CompraVista): EstadoLista => {
+    const cargada = c.productionId === null ? undefined : listas?.get(c.productionId);
+    if (cargada === undefined) return "cargando";
+    if (cargada === null) return "error";
+    const [prod, grupos] = cargada;
+    const grupo = grupoDeCompra(grupos, c);
+    return grupo ? { lista: armarLista(grupo, prod), archivo: nombreArchivo(grupo.supplier, prod.code) } : "sin-lista";
+  };
   const delMes = compras.filter((c) => c.status === "bought" && c.date?.startsWith(mes));
   const rows = filtro === "TODAS" ? compras : compras.filter((c) => (c.status === "pending") === (filtro === "POR COMPRAR"));
 
@@ -44,9 +63,12 @@ export default function ComprasPage() {
         {c.date && <span className="text-[10px] text-text-muted font-mono">{formatDate(c.date)}</span>}
       </span>
     ) : (
-      <button type="button" onClick={() => setAbierta(c)} className={`${btnPrimary} py-1 text-[11px]`}>
-        <ShoppingCart className="w-3 h-3" /> Registrar compra
-      </button>
+      <span className="inline-flex flex-wrap justify-center gap-1">
+        <button type="button" onClick={() => setAbierta(c)} className={`${btnPrimary} py-1 text-[11px]`}>
+          <ShoppingCart className="w-3 h-3" /> Registrar compra
+        </button>
+        {c.productionId !== null && <BotonesLista l={listaDe(c)} onReintentar={recargarListas} />}
+      </span>
     ) },
   ];
 
@@ -81,4 +103,27 @@ export default function ComprasPage() {
       <AnimatePresence>{abierta !== undefined && <CompraPanel compra={abierta} proveedores={proveedores} insumos={insumos} onClose={() => setAbierta(undefined)} />}</AnimatePresence>
     </>
   );
+}
+
+type EstadoLista = "cargando" | "error" | "sin-lista" | { lista: ListaSuper; archivo: string };
+const AYUDA = { cargando: "Cargando lista…", error: "No se pudo cargar la lista", "sin-lista": "Esta compra no tiene lista pendiente" };
+
+/** Copiar o bajar la lista de un proveedor. Si la carga falló, tocar avisa y reintenta. */
+function BotonesLista({ l, onReintentar }: { l: EstadoLista; onReintentar: () => void }) {
+  const cls = `${btnSecondary} py-1 px-2 text-[11px]`;
+  const lista = typeof l === "object" ? l : null;
+  const tocar = (accion: (x: { lista: ListaSuper; archivo: string }) => void) => () => {
+    if (lista) return accion(lista);
+    feedback.error("No se pudo cargar la lista de esta producción. Reintentando…");
+    onReintentar();
+  };
+  const props = { className: cls, disabled: l === "cargando" || l === "sin-lista", title: lista ? undefined : AYUDA[l as keyof typeof AYUDA] };
+  return <>
+    <button type="button" {...props} onClick={tocar((x) => copiarLista(x.lista))} aria-label="Copiar lista">
+      <Copy className="w-3 h-3" /> Copiar
+    </button>
+    <button type="button" {...props} onClick={tocar((x) => descargarPdf([x.lista], x.archivo))} aria-label="Descargar PDF">
+      <FileDown className="w-3 h-3" /> PDF
+    </button>
+  </>;
 }

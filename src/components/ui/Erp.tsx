@@ -8,7 +8,7 @@ export const selectCls = `${inputCls} cursor-pointer`;
 export const btnPrimary =
   "inline-flex items-center justify-center gap-1.5 bg-accent text-white text-xs font-bold px-3.5 py-2 rounded-xs shadow-xs hover:bg-accent-dark transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
 export const btnSecondary =
-  "inline-flex items-center justify-center gap-1.5 bg-surface border border-border-strong text-text-body text-xs px-3 py-1.5 rounded-xs shadow-xs hover:bg-surface-alt transition-colors cursor-pointer";
+  "inline-flex items-center justify-center gap-1.5 bg-surface border border-border-strong text-text-body text-xs px-3 py-1.5 rounded-xs shadow-xs hover:bg-surface-alt transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
 export const thCls = "px-3 py-2 text-left text-[10px] font-bold tracking-[0.5px] text-text-label font-mono whitespace-nowrap";
 export const tdCls = "px-3 py-3 text-xs text-text-body";
 
